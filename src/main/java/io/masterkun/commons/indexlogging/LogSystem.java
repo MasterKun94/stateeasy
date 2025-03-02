@@ -3,11 +3,15 @@ package io.masterkun.commons.indexlogging;
 import io.masterkun.commons.indexlogging.impl.EventLoggerImpl;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -18,11 +22,13 @@ import java.util.concurrent.atomic.AtomicInteger;
  * The system also supports metrics registration for monitoring purposes.
  */
 public final class LogSystem implements HasMetrics {
+    private static final Logger LOG = LoggerFactory.getLogger(LogSystem.class);
     private static final AtomicInteger INSTANCE_ADDER = new AtomicInteger();
     private final int instanceId = INSTANCE_ADDER.getAndIncrement();
     private final Map<String, LoggerHolder> cache = new ConcurrentHashMap<>();
     private final ExecutorPool executorPool;
     private volatile MetricRegister register;
+    private volatile boolean shutdown;
 
     public LogSystem(int threadNumPerDisk) {
         AtomicInteger adder = new AtomicInteger();
@@ -63,13 +69,17 @@ public final class LogSystem implements HasMetrics {
     public <T> EventLogger<T> get(LogConfig config,
                                   Serializer<T> serializer,
                                   @Nullable Executor readerExecutor) throws IOException {
+        if (shutdown) {
+            throw new IllegalArgumentException("system already closed");
+        }
         try {
             //noinspection unchecked
             return (EventLogger<T>) cache.compute(config.name(), (key, holder) -> {
                 if (holder == null) {
                     try {
-                        EventLogger<?> logger = new EventLoggerImpl<>(config.name(), config, serializer,
-                                executorPool.getOrCreate(config.logDir()), readerExecutor);
+                        EventLogger<?> logger = new EventLoggerImpl<>(config.name(), config,
+                                serializer, executorPool.getOrCreate(config.logDir()),
+                                readerExecutor);
                         if (register != null) {
                             register.register(logger);
                         }
@@ -107,6 +117,9 @@ public final class LogSystem implements HasMetrics {
      */
     @Override
     public void register(String metricPrefix, MeterRegistry registry, String... tags) {
+        if (shutdown) {
+            throw new IllegalArgumentException("system already closed");
+        }
         register(metricPrefix, registry, false);
     }
 
@@ -142,6 +155,23 @@ public final class LogSystem implements HasMetrics {
         }
     }
 
+    public CompletableFuture<Void> shutdown() {
+        shutdown = true;
+        for (LoggerHolder value : cache.values()) {
+            try {
+                value.close();
+            } catch (Exception e) {
+                LOG.error("Error while shutdown logger: {}", value, e);
+            }
+        }
+        cache.clear();
+        return executorPool.shutdown();
+    }
+
+    public boolean isShutdown() {
+        return shutdown;
+    }
+
     private interface MetricRegister {
         void register(EventLogger<?> logger);
     }
@@ -149,13 +179,20 @@ public final class LogSystem implements HasMetrics {
     private record LoggerHolder(EventLogger<?> logger,
                                 LogConfig config,
                                 Serializer<?> serializer,
-                                Executor readerExecutor) {
+                                Executor readerExecutor) implements Closeable {
         boolean match(LogConfig config,
                       Serializer<?> serializer,
                       Executor readerExecutor) {
             return Objects.equals(config(), config) &&
                     Objects.equals(serializer(), serializer) &&
                     Objects.equals(readerExecutor(), readerExecutor);
+        }
+
+        @Override
+        public void close() throws IOException {
+            if (logger instanceof Closeable closeable) {
+                closeable.close();
+            }
         }
     }
 }

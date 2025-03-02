@@ -47,7 +47,7 @@ public interface LogSegment<T> {
 
         boolean put(T value, Callback callback, boolean flush);
 
-        void flush() throws IOException;
+        void flush();
 
         void addListener(long startFromId, long timeoutMills, LogWriter.ReadListener listener);
     }

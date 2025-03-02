@@ -5,6 +5,7 @@ import io.masterkun.commons.indexlogging.HasMetrics;
 import io.masterkun.commons.indexlogging.IdAndOffset;
 import io.masterkun.commons.indexlogging.LogConfig;
 import io.masterkun.commons.indexlogging.LogObserver;
+import io.masterkun.commons.indexlogging.LogSystem;
 import io.masterkun.commons.indexlogging.Serializer;
 import io.masterkun.commons.indexlogging.exception.IdExpiredException;
 import io.masterkun.commons.indexlogging.exception.LogCorruptException;
@@ -12,6 +13,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayDeque;
@@ -24,7 +26,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 
-public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics {
+public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics, Closeable {
     private static final Logger LOG = LoggerFactory.getLogger(EventLoggerImpl.class);
 
     private final String name;
@@ -34,6 +36,7 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics {
     private final ScheduledExecutorService executor;
     private final Executor readerExecutor;
     private LogSegment<T> currentSegment;
+    private volatile boolean closed;
 
     public EventLoggerImpl(String name,
                            LogConfig config,
@@ -98,6 +101,9 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics {
 
     @Override
     public CompletableFuture<IdAndOffset> write(T obj, boolean flush, boolean immediateCallback) {
+        if (closed) {
+            return CompletableFuture.failedFuture(new RuntimeException("already closed"));
+        }
         var callback = new CallbackAdaptor(immediateCallback);
         executor.execute(() -> {
             if (!currentSegment.getWriter().put(obj, callback, flush)) {
@@ -129,6 +135,9 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics {
 
     @Override
     public void read(long startOffset, long startId, int limit, LogObserver<T> observer) {
+        if (closed) {
+            observer.onError(new RuntimeException("already closed"));
+        }
         for (LogSegment<T> segment : segments) {
             if (segment.startId() <= startId) {
                 if (segment == currentSegment) {
@@ -228,6 +237,12 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics {
                 });
             }
         }
+    }
+
+    @Override
+    public void close() {
+        closed = true;
+        currentSegment.getWriter().flush();
     }
 
     private static class CallbackAdaptor implements Callback {

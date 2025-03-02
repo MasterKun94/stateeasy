@@ -6,6 +6,8 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.binder.jvm.ExecutorServiceMetrics;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,10 +16,13 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -27,12 +32,14 @@ import java.util.concurrent.atomic.AtomicInteger;
  * and provides methods to get or create these executors. It also supports registering metrics for monitoring.
  */
 public class ExecutorPool implements HasMetrics {
+    private static final Logger LOG = LoggerFactory.getLogger(ExecutorPool.class);
+
     private final Map<String, ExecutorHolder> executors = new ConcurrentHashMap<>();
     private final int threadNumPerDisk;
     private final ExecutorFactory executorFactory;
     private final ThreadFactory threadFactory;
-    private final AtomicInteger inc = new AtomicInteger();
     private MetricsWrapper wrapper;
+    private volatile CompletableFuture<Void> shutdownFuture;
 
     public ExecutorPool(int threadNumPerDisk,
                         @Nullable ThreadFactory threadFactory) {
@@ -60,6 +67,9 @@ public class ExecutorPool implements HasMetrics {
      * @throws RuntimeException if an I/O error occurs while retrieving the file store
      */
     public ScheduledExecutorService getOrCreate(File dir) {
+        if (shutdownFuture != null) {
+            throw new RuntimeException("already shutdown");
+        }
         File parent = dir;
         while (!parent.exists()) {
             parent = parent.getParentFile();
@@ -83,6 +93,9 @@ public class ExecutorPool implements HasMetrics {
 
     @Override
     public void register(String metricPrefix, MeterRegistry registry, String... tags) {
+        if (shutdownFuture != null) {
+            throw new RuntimeException("already shutdown");
+        }
         wrapper = (executor, fileStore, id) -> {
             List<Tag> tagList = new ArrayList<>();
             for (int i = 0; i < tags.length; i += 2) {
@@ -98,6 +111,24 @@ public class ExecutorPool implements HasMetrics {
         }
     }
 
+    public CompletableFuture<Void> shutdown() {
+        shutdownFuture = new CompletableFuture<>();
+        for (ExecutorHolder value : executors.values()) {
+            value.shutdown();
+        }
+        new Thread(() -> {
+            try {
+                for (ExecutorHolder value : executors.values()) {
+                    value.awaitTermination();
+                }
+                shutdownFuture.complete(null);
+            } catch (Exception e) {
+                shutdownFuture.completeExceptionally(e);
+            }
+        }).start();
+        return shutdownFuture;
+    }
+
     private interface MetricsWrapper {
         ScheduledExecutorService wrap(ScheduledExecutorService executor, String fileStore, int id);
     }
@@ -107,6 +138,7 @@ public class ExecutorPool implements HasMetrics {
         private final List<ScheduledExecutorService> list = new ArrayList<>();
         private final AtomicInteger adder = new AtomicInteger();
         private final AtomicBoolean metricsRegistered = new AtomicBoolean();
+        private volatile boolean shutdown;
 
         private ExecutorHolder(String fileStoreName) {
             this.fileStoreName = fileStoreName;
@@ -114,6 +146,9 @@ public class ExecutorPool implements HasMetrics {
 
         public ScheduledExecutorService nextExecutor() {
             synchronized (this) {
+                if (shutdown) {
+                    throw new RuntimeException("already shutdown");
+                }
                 if (list.size() < threadNumPerDisk) {
                     var executor = executorFactory.createSingleThreadExecutor(threadFactory);
                     if (wrapper != null) {
@@ -128,9 +163,34 @@ public class ExecutorPool implements HasMetrics {
         }
 
         public void registerMetrics() {
-            if (metricsRegistered.compareAndSet(false, true)) {
-                for (int id = 0; id < list.size(); id++) {
-                    list.set(id, wrapper.wrap(list.get(id), fileStoreName, id));
+            synchronized (this) {
+                if (shutdown) {
+                    throw new RuntimeException("already shutdown");
+                }
+                if (metricsRegistered.compareAndSet(false, true)) {
+                    for (int id = 0; id < list.size(); id++) {
+                        list.set(id, wrapper.wrap(list.get(id), fileStoreName, id));
+                    }
+                }
+            }
+
+        }
+
+        public void shutdown() {
+            synchronized (this) {
+                shutdown = true;
+                for (ScheduledExecutorService executor : list) {
+                    executor.shutdown();
+                }
+            }
+        }
+
+        public void awaitTermination() {
+            for (ExecutorService executor : list) {
+                try {
+                    executor.awaitTermination(10, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    LOG.warn("Thread interrupt", e);
                 }
             }
         }
