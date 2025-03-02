@@ -17,6 +17,7 @@ final class MappedByteBufferLogIndexer implements LogIndexer {
     private int endId;
     private int endOffset;
     private int persistAt;
+
     MappedByteBufferLogIndexer(MappedByteBuffer buffer,
                                LogState state) throws LogCorruptException {
         this.buffer = buffer;

@@ -21,6 +21,7 @@ public class LogSegmentImpl<T> implements LogSegment<T> {
     private final LogConfig config;
     private final long initId;
     private LogWriter writer;
+
     LogSegmentImpl(MetaInfo metaInfo, LogIndexer indexer, LogReader reader, LogWriter writer,
                    Serializer<T> serializer, LogConfig config, long initId) {
         this.metaInfo = metaInfo;

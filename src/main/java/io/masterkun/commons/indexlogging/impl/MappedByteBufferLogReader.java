@@ -20,6 +20,7 @@ public final class MappedByteBufferLogReader implements LogReader, HasMetrics {
     private final MappedByteBuffer buffer;
     private volatile int readable;
     private Counter eventsRead;
+
     public MappedByteBufferLogReader(MappedByteBuffer buffer) {
         this.buffer = buffer;
         readable = buffer.position();
