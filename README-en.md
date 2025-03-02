@@ -65,6 +65,7 @@ public class Example {
         // Log system configuration
         LogConfig logConfig = LogConfig
                 .builder("example", new File(".tmp/example"))
+                .readTimeout(Duration.ofMillis(1000))
                 .build();
         // Get EventLogger
         EventLogger<MyMessage> eventLogger = system.get(logConfig, new MySerializer());
@@ -116,8 +117,12 @@ public class Example {
             idAndOffset = nextIdAndOffset;
         }
         System.out.println("Total read: " + msgCount);
-
-        system.shutdown().join();
+        system.shutdown().whenComplete((v, e) -> {
+            if (e != null) {
+                e.printStackTrace();
+            }
+            System.out.println("Shutdown");
+        }).join();
     }
 }
 ```

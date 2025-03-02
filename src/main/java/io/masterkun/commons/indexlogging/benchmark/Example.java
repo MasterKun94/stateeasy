@@ -9,11 +9,23 @@ import io.masterkun.commons.indexlogging.Serializer;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class Example {
+
+    static {
+        File f = new File(".tmp/example");
+        if (f.isDirectory()) {
+            for (File file : Objects.requireNonNull(f.listFiles())) {
+                file.delete();
+            }
+        } else {
+            f.mkdirs();
+        }
+    }
 
     public static void main(String[] args) throws Exception {
         // 初始化 LogSystem
@@ -21,6 +33,7 @@ public class Example {
         // 日志系统配置
         LogConfig logConfig = LogConfig
                 .builder("example", new File(".tmp/example"))
+                .readTimeout(Duration.ofMillis(1000))
                 .build();
         // 获取 EventLogger
         EventLogger<MyMessage> eventLogger = system.get(logConfig, new MySerializer());
@@ -71,7 +84,14 @@ public class Example {
             }
             idAndOffset = nextIdAndOffset;
         }
+
         System.out.println("Total read: " + msgCount);
+        system.shutdown().whenComplete((v, e) -> {
+            if (e != null) {
+                e.printStackTrace();
+            }
+            System.out.println("Shutdown");
+        }).join();
     }
 }
 

@@ -55,12 +55,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class Example {
 
+
     public static void main(String[] args) throws Exception {
         // 初始化 LogSystem
         LogSystem system = new LogSystem(4); // 假设每个磁盘有最多4个写入线程
         // 日志系统配置
         LogConfig logConfig = LogConfig
                 .builder("example", new File(".tmp/example"))
+                .readTimeout(Duration.ofMillis(1000))
                 .build();
         // 获取 EventLogger
         EventLogger<MyMessage> eventLogger = system.get(logConfig, new MySerializer());
@@ -104,16 +106,21 @@ public class Example {
             } else {
                 eventLogger.read(idAndOffset, 10, observer);
             }
-            IdAndOffset nextIdAndOffset = future.join();
+            IdAndOffset nextIdAndOffset = future.get();
             if (Objects.equals(nextIdAndOffset, idAndOffset)) {
                 System.out.println("Message read complete");
                 break;
             }
             idAndOffset = nextIdAndOffset;
         }
+
         System.out.println("Total read: " + msgCount);
-        
-        system.shutdown().join();
+        system.shutdown().whenComplete((v, e) -> {
+            if (e != null) {
+                e.printStackTrace();
+            }
+            System.out.println("Shutdown");
+        }).join();
     }
 }
 ```
