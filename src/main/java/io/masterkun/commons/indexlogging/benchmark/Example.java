@@ -1,45 +1,16 @@
-# index-logging
+package io.masterkun.commons.indexlogging.benchmark;
 
-## 介绍
-
-这是一个基于mmap的轻量高性能消息日志读写工具，支持消息的追加写入，和基于索引的消息读取。
-可应用于WAL、消息队列、时间溯源等多种场景。
-
-## 使用样例
-### 自定义消息类型
-首先，我们需要定义想要记录的数据结构。这里采用一个简单的 Java 类来表示：
-```java
-public record MyMessage(int id,
-                       String message, 
-                       long timestamp) {
-}
-```
-### 自定义序列化器
-为了将 `MyMessage` 对象转换为字节流以便存储或传输，我们需要实现一个 `Serializer` 接口。这里提供了一个简单实现：
-```java
-import io.masterkun.commons.indexlogging.Serializer;import java.io.IOException;
-
-public class MySerializer implements Serializer<MyMessage> {
-    @Override
-    public void serialize(MyMessage obj, DataOut out) throws IOException {
-       out.writeInt(obj.id());
-       out.writeUTF(obj.message());
-       out.writeLong(obj.timestamp());
-    }
-    
-    @Override
-    public MyMessage deserialize(DataIn in) throws IOException {
-        return new MyMessage(in.readInt(), in.readUTF(), in.readLong());
-    }
-}
-```
-### 配置 LogSystem 并获取 EventLogger
-
-接下来是设置 `LogSystem` 并通过指定配置与序列化器来请求一个 `EventLogger` 实例。此步骤还包括了如何处理可能抛出的异常。
-```java
-
+import io.masterkun.commons.indexlogging.EventLogger;
+import io.masterkun.commons.indexlogging.IdAndOffset;
 import io.masterkun.commons.indexlogging.LogConfig;
+import io.masterkun.commons.indexlogging.LogObserver;
 import io.masterkun.commons.indexlogging.LogSystem;
+import io.masterkun.commons.indexlogging.Serializer;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class Example {
@@ -65,7 +36,7 @@ public class Example {
                 }
             });
         }
-        
+
         // 每10条一批读取消息，当读到的消息条数为0时跳出循环
         AtomicInteger msgCount = new AtomicInteger();
         IdAndOffset idAndOffset = null;
@@ -103,14 +74,22 @@ public class Example {
         System.out.println("Total read: " + msgCount);
     }
 }
-```
 
+class MySerializer implements Serializer<MyMessage> {
+    @Override
+    public void serialize(MyMessage obj, DataOut out) throws IOException {
+        out.writeInt(obj.id());
+        out.writeUTF(obj.message());
+        out.writeLong(obj.timestamp());
+    }
 
+    @Override
+    public MyMessage deserialize(DataIn in) throws IOException {
+        return new MyMessage(in.readInt(), in.readUTF(), in.readLong());
+    }
+}
 
-## 许可
-
-本项目采用 MIT 许可证。更多信息请参见 [LICENSE](LICENSE) 文件。
-
-## 联系
-
-如果有任何问题或建议，请联系 [jsczcmk@outlook.com]。
+record MyMessage(int id,
+                 String message,
+                 long timestamp) {
+}
