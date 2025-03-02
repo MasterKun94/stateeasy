@@ -5,7 +5,6 @@ import io.masterkun.commons.indexlogging.HasMetrics;
 import io.masterkun.commons.indexlogging.IdAndOffset;
 import io.masterkun.commons.indexlogging.LogConfig;
 import io.masterkun.commons.indexlogging.LogObserver;
-import io.masterkun.commons.indexlogging.LogSystem;
 import io.masterkun.commons.indexlogging.Serializer;
 import io.masterkun.commons.indexlogging.exception.IdExpiredException;
 import io.masterkun.commons.indexlogging.exception.LogCorruptException;
@@ -106,6 +105,10 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics, Clo
         }
         var callback = new CallbackAdaptor(immediateCallback);
         executor.execute(() -> {
+            if (closed) {
+                callback.onError(new RuntimeException("already closed"));
+                return;
+            }
             if (!currentSegment.getWriter().put(obj, callback, flush)) {
                 try {
                     LOG.info("IndexLogger[{}] creating new segment at id={}, offset={}",
@@ -137,11 +140,16 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics, Clo
     public void read(long startOffset, long startId, int limit, LogObserver<T> observer) {
         if (closed) {
             observer.onError(new RuntimeException("already closed"));
+            return;
         }
         for (LogSegment<T> segment : segments) {
             if (segment.startId() <= startId) {
                 if (segment == currentSegment) {
                     readerExecutor.execute(() -> {
+                        if (closed) {
+                            observer.onError(new RuntimeException("already closed"));
+                            return;
+                        }
                         try {
                             var iter = segment.getReader().get(startOffset, startId, limit);
                             if (iter.hasNext()) {
@@ -162,6 +170,10 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics, Clo
                     return;
                 } else {
                     readerExecutor.execute(() -> {
+                        if (closed) {
+                            observer.onError(new RuntimeException("already closed"));
+                            return;
+                        }
                         try {
                             var iter = segment.getReader().get(startOffset, startId, limit);
                             assert iter.hasNext();
@@ -183,6 +195,10 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics, Clo
     }
 
     private void addReadListener(LogSegment<T> segment, long startOffset, long startId, int limit, LogObserver<T> observer) {
+        if (closed) {
+            observer.onError(new RuntimeException("already closed"));
+            return;
+        }
         if (segment != currentSegment) {
             read(startOffset, startId, limit, observer);
             return;
@@ -242,7 +258,9 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics, Clo
     @Override
     public void close() {
         closed = true;
-        currentSegment.getWriter().flush();
+        executor.execute(() -> {
+            currentSegment.getWriter().flush();
+        });
     }
 
     private static class CallbackAdaptor implements Callback {
