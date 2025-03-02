@@ -13,7 +13,7 @@ import java.time.Duration;
 public record LogConfig(
         String name,
         File logDir,
-        int segmentNumPerLog,
+        int segmentNum,
         int segmentSizeMax,
         int indexChunkSize,
         int indexPersistSize,
@@ -35,7 +35,7 @@ public record LogConfig(
 
     public Builder toBuilder() {
         return new Builder(logDir, name)
-                .segmentNumPerLog(segmentNumPerLog)
+                .segmentNum(segmentNum)
                 .segmentSizeMax(segmentSizeMax)
                 .indexChunkSize(indexChunkSize)
                 .indexPersistSize(indexPersistSize)
@@ -50,7 +50,7 @@ public record LogConfig(
     public static class Builder {
         private final String name;
         private File logDir;
-        private int segmentNumPerLog = 8;
+        private int segmentNum = 8;
         private int segmentSizeMax = 16 * 1024 * 1024;
         private int indexChunkSize = 8192;
         private int indexPersistSize = 65535;
@@ -72,8 +72,8 @@ public record LogConfig(
             return this;
         }
 
-        public Builder segmentNumPerLog(int segmentNumPerLog) {
-            this.segmentNumPerLog = segmentNumPerLog;
+        public Builder segmentNum(int segmentNum) {
+            this.segmentNum = segmentNum;
             return this;
         }
 
@@ -131,7 +131,7 @@ public record LogConfig(
             return new LogConfig(
                     name,
                     logDir,
-                    segmentNumPerLog,
+                    segmentNum,
                     segmentSizeMax,
                     indexChunkSize,
                     indexPersistSize,

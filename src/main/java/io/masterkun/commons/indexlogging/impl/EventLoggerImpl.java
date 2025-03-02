@@ -199,7 +199,7 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics {
 
     private void segmentCleanup() {
         try {
-            while (segments.size() > segmentConfig.segmentNumPerLog()) {
+            while (segments.size() > segmentConfig.segmentNum()) {
                 LogSegment<T> segment = segments.removeLast();
                 segment.delete();
             }
