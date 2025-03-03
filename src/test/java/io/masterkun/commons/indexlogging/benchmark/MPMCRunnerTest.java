@@ -5,11 +5,13 @@ import io.masterkun.commons.indexlogging.LogConfig;
 import io.masterkun.commons.indexlogging.LogSystem;
 import io.masterkun.commons.indexlogging.Serializer;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.channels.OverlappingFileLockException;
 import java.time.Duration;
 
 public class MPMCRunnerTest {
@@ -57,6 +59,8 @@ public class MPMCRunnerTest {
         runner.run();
 
         LogSystem system2 = new LogSystem(2);
+        Assert.assertThrows(OverlappingFileLockException.class, () -> system2.get(config, serializer));
+        system.shutdown().join();
         EventLogger<String> logger2 = system2.get(config, serializer);
         MPMCRunner runner2 = new MPMCRunner(logger2, 3, 3, 20000);
         runner2.run();

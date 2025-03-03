@@ -6,6 +6,7 @@ import io.masterkun.commons.indexlogging.IdAndOffset;
 import io.masterkun.commons.indexlogging.LogConfig;
 import io.masterkun.commons.indexlogging.LogObserver;
 import io.masterkun.commons.indexlogging.Serializer;
+import io.masterkun.commons.indexlogging.exception.FileAlreadyLockedException;
 import io.masterkun.commons.indexlogging.exception.IdExpiredException;
 import io.masterkun.commons.indexlogging.exception.LogCorruptException;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -14,7 +15,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.channels.FileLock;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collections;
@@ -25,6 +28,18 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 
+/**
+ * An implementation of the {@link EventLogger} interface that manages a series of log segments for storing and retrieving events.
+ * This class provides functionality to write, read, and manage log segments, as well as register metrics and handle cleanup.
+ * <p>
+ * The log segments are managed in a deque, with new segments being added to the front. The current segment is where new writes occur,
+ * and once it reaches its capacity, a new segment is created. Segments can be read from, and old segments are periodically cleaned up
+ * based on the configuration.
+ * <p>
+ * This class is thread-safe and ensures that all operations are performed in a consistent manner.
+ *
+ * @param <T> the type of the event objects to be logged
+ */
 public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics, Closeable {
     private static final Logger LOG = LoggerFactory.getLogger(EventLoggerImpl.class);
 
@@ -34,6 +49,8 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics, Clo
     private final Serializer<T> serializer;
     private final ScheduledExecutorService executor;
     private final Executor readerExecutor;
+    private final FileLock dirLock;
+    private final FileOutputStream lockStream;
     private LogSegment<T> currentSegment;
     private volatile boolean closed;
 
@@ -44,6 +61,18 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics, Clo
                            Executor readerExecutor) throws IOException {
         this.name = name;
         File logDir = config.logDir();
+        // 获取目录锁
+        File lockFile = new File(logDir, "logger-" + name + ".lock");
+        try {
+            this.lockStream = new FileOutputStream(lockFile);
+            this.dirLock = lockStream.getChannel().tryLock();
+            if (dirLock == null) {
+                throw new FileAlreadyLockedException(lockFile);
+            }
+        } catch (IOException e) {
+            closeLockResources();
+            throw e;
+        }
         this.segmentConfig = config;
         this.serializer = serializer;
         this.executor = executor;
@@ -80,6 +109,24 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics, Clo
                 }
                 segments.addFirst(currentSegment);
             }
+        }
+    }
+
+    // 新增锁资源释放方法
+    private void closeLockResources() {
+        try {
+            if (dirLock != null) {
+                dirLock.release();
+            }
+        } catch (IOException e) {
+            LOG.error("释放文件锁失败", e);
+        }
+        try {
+            if (lockStream != null) {
+                lockStream.close();
+            }
+        } catch (IOException e) {
+            LOG.error("关闭锁文件流失败", e);
         }
     }
 
@@ -261,6 +308,7 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics, Clo
         executor.execute(() -> {
             currentSegment.getWriter().flush();
         });
+        closeLockResources();
     }
 
     private static class CallbackAdaptor implements Callback {

@@ -8,6 +8,7 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.channels.OverlappingFileLockException;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -101,6 +102,8 @@ public class LogSystemTest {
         Assert.assertEquals(2, nextIdAndOffset.id());
 
         LogSystem system2 = new LogSystem(2);
+        Assert.assertThrows(OverlappingFileLockException.class, () -> system2.get(config, new StringSerializer()));
+        system.shutdown().join();
         EventLogger<String> logger2 = system2.get(config, new StringSerializer());
 
         observer = new TestObserver(
