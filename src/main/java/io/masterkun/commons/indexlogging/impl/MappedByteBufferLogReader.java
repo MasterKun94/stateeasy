@@ -70,14 +70,14 @@ public final class MappedByteBufferLogReader implements LogReader, HasMetrics {
 
     private static int getLenAndCheckCrc(int id, int offset, MappedByteBuffer buffer) throws CrcCheckException {
         int len = buffer.getInt(offset + 4);
-        if (Utils.crc(id, len) != buffer.getInt(offset + 8)) {
+        if (Utils.crc(id, len) != buffer.getInt(offset + 8 + len)) {
             throw new CrcCheckException(id, offset);
         }
         return len;
     }
 
     private Serializer.DataIn dataInput(int offset, int len, ByteBufferDataInputStream reuse) {
-        MappedByteBuffer slice = buffer.slice(offset + HEAD_LEN, len);
+        MappedByteBuffer slice = buffer.slice(offset + 8, len);
         if (reuse == null) {
             return new ByteBufferDataInputStream(slice);
         } else {

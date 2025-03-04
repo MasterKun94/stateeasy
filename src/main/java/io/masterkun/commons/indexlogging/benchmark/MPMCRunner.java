@@ -29,8 +29,10 @@ public class MPMCRunner {
         public void accept(IdAndOffset idAndOffset, Throwable e) {
             if (e != null) {
                 LOG.error("Producer error", e);
+                System.exit(-1);
             } else if (nextId != idAndOffset.id()) {
-                LOG.error("id check failed", new RuntimeException());
+                LOG.error("id check failed, expect: {}, actual: {}", nextId, idAndOffset);
+                System.exit(-1);
             }
             nextId++;
         }

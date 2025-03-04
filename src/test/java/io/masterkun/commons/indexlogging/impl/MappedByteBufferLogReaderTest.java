@@ -37,18 +37,18 @@ public class MappedByteBufferLogReaderTest {
         var out = new ByteBufferDataOutputStream(bufferForWrite);
         out.writeInt(5);
         out.writeInt(4);
-        out.writeInt(Utils.crc(5, 4));
         out.write(new byte[]{1, 2, 3, 4});
+        out.writeInt(Utils.crc(5, 4));
 
         out.writeInt(6);
         out.writeInt(5);
-        out.writeInt(Utils.crc(6, 5));
         out.write(new byte[]{2, 3, 4, 5, 6});
+        out.writeInt(Utils.crc(6, 5));
 
         out.writeInt(7);
         out.writeInt(3);
-        out.writeInt(Utils.crc(7, 3));
         out.write(new byte[]{4, 5, 6});
+        out.writeInt(Utils.crc(7, 3));
 
         out.flush();
         Assert.assertEquals(36 + 4 + 5 + 3, bufferForWrite.position());

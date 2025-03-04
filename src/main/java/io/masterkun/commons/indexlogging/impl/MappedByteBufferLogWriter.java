@@ -142,7 +142,7 @@ final class MappedByteBufferLogWriter implements LogWriter, HasMetrics {
         public LogDataOut reset(boolean immediateFlush, WriteListener callback) {
             this.immediateFlush = immediateFlush;
             this.listener = Objects.requireNonNull(callback);
-            getBuffer().clear().position(12);
+            getBuffer().clear().position(8);
             return this;
         }
 
@@ -154,14 +154,14 @@ final class MappedByteBufferLogWriter implements LogWriter, HasMetrics {
             try {
                 ByteBuffer serializeBuffer = getBuffer();
                 MappedByteBuffer mappedBuffer = MappedByteBufferLogWriter.this.buffer;
-                if (mappedBuffer.remaining() < serializeBuffer.position()) {
+                if (mappedBuffer.remaining() < serializeBuffer.position() + 4) {
                     throw LogFullException.INSTANCE;
                 }
                 int id = writeId + 1;
-                int len = serializeBuffer.position() - 12;
+                int len = serializeBuffer.position() - 8;
+                serializeBuffer.putInt(Utils.crc(id, len));
                 serializeBuffer.putInt(0, id);
                 serializeBuffer.putInt(4, len);
-                serializeBuffer.putInt(8, Utils.crc(id, len));
                 int pos = mappedBuffer.position();
                 mappedBuffer.put(serializeBuffer.flip());
                 writeListeners.add(listener);
