@@ -131,10 +131,10 @@ public class LogSegmentImpl<T> implements LogSegment<T> {
 
     @Override
     public void delete() {
-        LOG.info("LogSegment[{}-{}] is deleted", config.name(), initId);
         Utils.metaFile(config, initId).delete();
         Utils.logFile(config, initId).delete();
         Utils.indexFile(config, initId).delete();
+        LOG.info("LogSegment[{}-{}] is deleted", config.name(), initId);
     }
 
     private long realId(int innerId) {
@@ -205,7 +205,7 @@ public class LogSegmentImpl<T> implements LogSegment<T> {
         @Override
         public LogIterator<T> get(long offsetAfter, long id, int limit) {
             int innerId = innerId(id);
-            int innerOffset = offsetAfter < 0 ?
+            int innerOffset = offsetAfter < startOffset() ?
                     indexer.offsetBefore(innerId) :
                     innerOffset(offsetAfter);
             return get(innerOffset, innerId, limit);

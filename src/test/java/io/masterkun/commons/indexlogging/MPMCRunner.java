@@ -1,8 +1,5 @@
-package io.masterkun.commons.indexlogging.benchmark;
+package io.masterkun.commons.indexlogging;
 
-import io.masterkun.commons.indexlogging.EventLogger;
-import io.masterkun.commons.indexlogging.IdAndOffset;
-import io.masterkun.commons.indexlogging.LogObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +20,7 @@ public class MPMCRunner {
     private final int producerCount;
     private final int consumerCount;
     private final int msgNum;
+    private final LongAdder totalConsumed = new LongAdder();
     private long nextId;
     private final BiConsumer<IdAndOffset, Throwable> handler = new BiConsumer<IdAndOffset, Throwable>() {
         @Override
@@ -46,18 +44,38 @@ public class MPMCRunner {
         this.nextId = logger.nextId();
     }
 
+    public void expire() {
+        logger.expire(nextId);
+    }
+
+    public void runConsumer() {
+        ExecutorService consumerExecutor = Executors.newFixedThreadPool(consumerCount);
+        for (int i = 0; i < consumerCount; i++) {
+            consumerExecutor.submit(new Consumer(0, totalConsumed));
+        }
+
+        consumerExecutor.shutdown();
+        try {
+            consumerExecutor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        System.out.println("Total consumed: " + totalConsumed);
+    }
+
     public void run() {
         ExecutorService producerExecutor = Executors.newFixedThreadPool(producerCount);
         ExecutorService consumerExecutor = Executors.newFixedThreadPool(consumerCount);
 
         LongAdder totalConsumed = new LongAdder();
 
-        for (int i = 0; i < producerCount; i++) {
-            producerExecutor.submit(new Producer());
+        for (int i = 0; i < consumerCount; i++) {
+            consumerExecutor.submit(new Consumer(nextId, totalConsumed));
         }
 
-        for (int i = 0; i < consumerCount; i++) {
-            consumerExecutor.submit(new Consumer(totalConsumed));
+        for (int i = 0; i < producerCount; i++) {
+            producerExecutor.submit(new Producer());
         }
 
         producerExecutor.shutdown();
@@ -75,6 +93,10 @@ public class MPMCRunner {
         }
 
         System.out.println("Total consumed: " + totalConsumed);
+    }
+
+    public EventLogger<String> getLogger() {
+        return logger;
     }
 
     private class Producer implements Runnable {
@@ -103,50 +125,57 @@ public class MPMCRunner {
 
     private class Consumer implements Runnable {
         private final LongAdder adder;
+        private long id;
 
-        public Consumer(LongAdder adder) {
+        public Consumer(long id, LongAdder adder) {
             this.adder = adder;
+            this.id = id;
         }
 
         @Override
         public void run() {
-            IdAndOffset idAndOffset = new IdAndOffset(0, 0);
-            while (true) {
-                CompletableFuture<IdAndOffset> future = new CompletableFuture<>();
-                long id = idAndOffset.id();
-                LogObserver<String> observer = new LogObserver<>() {
-                    private long expectId = id;
+            try {
+                IdAndOffset idAndOffset = new IdAndOffset(id, 0);
+                while (true) {
+                    CompletableFuture<IdAndOffset> future = new CompletableFuture<>();
+                    long id = idAndOffset.id();
+                    LogObserver<String> observer = new LogObserver<>() {
+                        private long expectId = id;
 
-                    @Override
-                    public void onNext(long id, long offset, String value) {
-                        adder.add(1);
-                        if (expectId != id) {
-                            LOG.error("id check failed", new RuntimeException());
+                        @Override
+                        public void onNext(long id, long offset, String value) {
+                            adder.add(1);
+                            if (expectId != id) {
+                                LOG.error("id check failed", new RuntimeException());
+                            }
+                            expectId++;
                         }
-                        expectId++;
-                    }
 
-                    @Override
-                    public void onComplete(long nextId, long nextOffset) {
-                        if (expectId != nextId) {
-                            LOG.error("id check failed", new RuntimeException());
+                        @Override
+                        public void onComplete(long nextId, long nextOffset) {
+                            if (expectId != nextId) {
+                                LOG.error("id check failed", new RuntimeException());
+                            }
+                            future.complete(new IdAndOffset(nextId, nextOffset));
                         }
-                        future.complete(new IdAndOffset(nextId, nextOffset));
-                    }
 
-                    @Override
-                    public void onError(Throwable e) {
-                        future.completeExceptionally(e);
+                        @Override
+                        public void onError(Throwable e) {
+                            future.completeExceptionally(e);
+                        }
+                    };
+                    logger.read(idAndOffset, 100, observer);
+                    IdAndOffset joined = future.join();
+                    if (joined.equals(idAndOffset)) {
+                        System.out.println(idAndOffset);
+                        break;
                     }
-                };
-                logger.read(idAndOffset, 100, observer);
-                IdAndOffset joined = future.join();
-                if (joined.equals(idAndOffset)) {
-                    System.out.println(idAndOffset);
-                    break;
+                    idAndOffset = joined;
                 }
-                idAndOffset = joined;
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
+
     }
 }

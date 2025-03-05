@@ -22,6 +22,7 @@ import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -273,6 +274,8 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics, Clo
         try {
             while (segments.size() > segmentConfig.segmentNum()) {
                 LogSegment<T> segment = segments.removeLast();
+                LOG.info("IndexLogger[{}] cleanup Segment[{}->{}]", name, segment.startId(),
+                        segment.endId());
                 segment.delete();
             }
         } catch (Exception e) {
@@ -345,5 +348,22 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics, Clo
         public CompletableFuture<IdAndOffset> getFuture() {
             return future;
         }
+    }
+
+    @Override
+    public void expire(long idBefore) {
+        executor.execute(() -> {
+            Iterator<LogSegment<T>> iter = segments.descendingIterator();
+            while (iter.hasNext()) {
+                LogSegment<T> segment = iter.next();
+                if (segment == currentSegment || segment.endId() >= idBefore) {
+                    break;
+                }
+                LOG.info("IndexLogger[{}] expire Segment[{}->{}]", name, segment.startId(),
+                        segment.endId());
+                iter.remove();
+                segment.delete();
+            }
+        });
     }
 }

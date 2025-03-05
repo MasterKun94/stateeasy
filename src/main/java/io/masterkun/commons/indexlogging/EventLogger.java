@@ -95,4 +95,11 @@ public interface EventLogger<T> {
     default void read(IdAndOffset idAndOffset, int limit, LogObserver<T> observer) {
         read(idAndOffset.offset(), idAndOffset.id(), limit, observer);
     }
+
+    /**
+     * Cleans up all log segments where the endId is less than the specified ID.
+     *
+     * @param idBefore the ID before which all log segments will be cleaned up
+     */
+    void expire(long idBefore);
 }

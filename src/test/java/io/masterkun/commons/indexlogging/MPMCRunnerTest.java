@@ -1,9 +1,5 @@
-package io.masterkun.commons.indexlogging.benchmark;
+package io.masterkun.commons.indexlogging;
 
-import io.masterkun.commons.indexlogging.EventLogger;
-import io.masterkun.commons.indexlogging.LogConfig;
-import io.masterkun.commons.indexlogging.LogSystem;
-import io.masterkun.commons.indexlogging.Serializer;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -63,8 +59,9 @@ public class MPMCRunnerTest {
         system.shutdown().join();
         EventLogger<String> logger2 = system2.get(config, serializer);
         MPMCRunner runner2 = new MPMCRunner(logger2, 3, 3, 20000);
+        runner2.runConsumer();
         runner2.run();
-
+        runner2.expire();
     }
 
 }
