@@ -314,6 +314,23 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics, Clo
         closeLockResources();
     }
 
+    @Override
+    public void expire(long idBefore) {
+        executor.execute(() -> {
+            Iterator<LogSegment<T>> iter = segments.descendingIterator();
+            while (iter.hasNext()) {
+                LogSegment<T> segment = iter.next();
+                if (segment == currentSegment || segment.endId() >= idBefore) {
+                    break;
+                }
+                LOG.info("IndexLogger[{}] expire Segment[{}->{}]", name, segment.startId(),
+                        segment.endId());
+                iter.remove();
+                segment.delete();
+            }
+        });
+    }
+
     private static class CallbackAdaptor implements Callback {
         private final CompletableFuture<IdAndOffset> future;
         private final boolean immediateCallback;
@@ -348,22 +365,5 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics, Clo
         public CompletableFuture<IdAndOffset> getFuture() {
             return future;
         }
-    }
-
-    @Override
-    public void expire(long idBefore) {
-        executor.execute(() -> {
-            Iterator<LogSegment<T>> iter = segments.descendingIterator();
-            while (iter.hasNext()) {
-                LogSegment<T> segment = iter.next();
-                if (segment == currentSegment || segment.endId() >= idBefore) {
-                    break;
-                }
-                LOG.info("IndexLogger[{}] expire Segment[{}->{}]", name, segment.startId(),
-                        segment.endId());
-                iter.remove();
-                segment.delete();
-            }
-        });
     }
 }

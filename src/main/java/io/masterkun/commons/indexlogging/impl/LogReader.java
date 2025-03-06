@@ -22,8 +22,4 @@ sealed interface LogReader permits MappedByteBufferLogReader {
     int getNextOffset(int offsetAfter, int id);
 
     <T> LogSegmentIterator<T> get(int offsetAfter, int id, int limit, Serializer<T> serializer);
-
-    interface Drainer {
-        void drainTo(int id, int offset, Serializer.DataIn in) throws IOException;
-    }
 }

@@ -1,2 +1,3 @@
 io.masterkun.commons.indexlogging.executor.BasicExecutorFactory
+io.masterkun.commons.indexlogging.executor.SingleThreadEventExecutorFactory
 io.masterkun.commons.indexlogging.executor.NettyEventExecutorFactory
