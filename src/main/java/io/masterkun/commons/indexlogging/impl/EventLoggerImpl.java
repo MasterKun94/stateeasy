@@ -1,6 +1,7 @@
 package io.masterkun.commons.indexlogging.impl;
 
 import io.masterkun.commons.indexlogging.EventLogger;
+import io.masterkun.commons.indexlogging.FlushListener;
 import io.masterkun.commons.indexlogging.HasMetrics;
 import io.masterkun.commons.indexlogging.IdAndOffset;
 import io.masterkun.commons.indexlogging.LogConfig;
@@ -148,10 +149,28 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics, Clo
 
     @Override
     public CompletableFuture<IdAndOffset> write(T obj, boolean flush, boolean immediateCallback) {
+        CompletableFuture<IdAndOffset> future = new CompletableFuture<>();
+        write(obj, flush, immediateCallback, new FlushListener() {
+            @Override
+            public void onReceive(IdAndOffset idAndOffset) {
+                future.complete(idAndOffset);
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                future.completeExceptionally(e);
+            }
+        });
+        return future;
+    }
+
+    @Override
+    public void write(T obj, boolean flush, boolean immediateCallback, FlushListener listener) {
         if (closed) {
-            return CompletableFuture.failedFuture(new RuntimeException("already closed"));
+            listener.onError(new RuntimeException("already closed"));
+            return;
         }
-        var callback = new CallbackAdaptor(immediateCallback);
+        var callback = new CallbackAdaptor(listener, immediateCallback);
         executor.execute(() -> {
             if (closed) {
                 callback.onError(new RuntimeException("already closed"));
@@ -176,7 +195,6 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics, Clo
                 }
             }
         });
-        return callback.getFuture();
     }
 
     @Override
@@ -332,19 +350,19 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics, Clo
     }
 
     private static class CallbackAdaptor implements Callback {
-        private final CompletableFuture<IdAndOffset> future;
+        private final FlushListener listener;
         private final boolean immediateCallback;
         private IdAndOffset idAndOffset;
 
-        private CallbackAdaptor(boolean immediateCallback) {
-            this.future = new CompletableFuture<>();
+        private CallbackAdaptor(FlushListener listener, boolean immediateCallback) {
+            this.listener = listener;
             this.immediateCallback = immediateCallback;
         }
 
         @Override
         public void onAppend(long id, long offset) {
             if (immediateCallback) {
-                future.complete(new IdAndOffset(id, offset));
+                listener.onReceive(new IdAndOffset(id, offset));
             } else {
                 idAndOffset = new IdAndOffset(id, offset);
             }
@@ -353,17 +371,13 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics, Clo
         @Override
         public void onPersist() {
             if (!immediateCallback) {
-                future.complete(idAndOffset);
+                listener.onReceive(idAndOffset);
             }
         }
 
         @Override
         public void onError(Throwable e) {
-            future.completeExceptionally(e);
-        }
-
-        public CompletableFuture<IdAndOffset> getFuture() {
-            return future;
+            listener.onError(e);
         }
     }
 }

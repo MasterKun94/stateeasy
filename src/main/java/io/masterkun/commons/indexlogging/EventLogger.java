@@ -43,6 +43,16 @@ public interface EventLogger<T> {
     }
 
     /**
+     * Asynchronously writes the given object to the log and notifies a listener upon completion or error.
+     *
+     * @param obj      the object to be written to the log
+     * @param listener the listener to be notified with the ID and offset of the written log entry, or any errors
+     */
+    default void write(T obj, FlushListener listener) {
+        write(obj, false, listener);
+    }
+
+    /**
      * Asynchronously writes the given object to the log with an option to flush.
      *
      * @param obj   the object to be written to the log
@@ -52,6 +62,17 @@ public interface EventLogger<T> {
      */
     default CompletableFuture<IdAndOffset> write(T obj, boolean flush) {
         return write(obj, flush, false);
+    }
+
+    /**
+     * Asynchronously writes the given object to the log with an option to flush and a listener for completion or error.
+     *
+     * @param obj      the object to be written to the log
+     * @param flush    if true, the write operation will be followed by a flush to ensure data is persisted
+     * @param listener the listener to be notified with the ID and offset of the written log entry, or any errors
+     */
+    default void write(T obj, boolean flush, FlushListener listener) {
+        write(obj, flush, false, listener);
     }
 
     /**
@@ -65,6 +86,16 @@ public interface EventLogger<T> {
      * of the written log entry once the write operation is complete
      */
     CompletableFuture<IdAndOffset> write(T obj, boolean flush, boolean immediateCallback);
+
+    /**
+     * Asynchronously writes the given object to the log with options for flushing and immediate callback, and notifies a listener upon completion or error.
+     *
+     * @param obj               the object to be written to the log
+     * @param flush             if true, the write operation will be followed by a flush to ensure data is persisted
+     * @param immediateCallback if true, the callback will be invoked immediately after the write operation, otherwise, it will be invoked after the data is persisted
+     * @param listener          the listener to be notified with the ID and offset of the written log entry, or any errors
+     */
+    void write(T obj, boolean flush, boolean immediateCallback, FlushListener listener);
 
     /**
      * Reads log entries starting from the specified ID and invokes the provided observer for each entry.
