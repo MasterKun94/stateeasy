@@ -1,0 +1,44 @@
+package io.masterkun.stateeasy.concurrent;
+
+import java.util.function.Function;
+
+public record Success<T>(T value) implements Try<T> {
+    @Override
+    public boolean isSuccess() {
+        return true;
+    }
+
+    @Override
+    public boolean isFailure() {
+        return false;
+    }
+
+    @Override
+    public Throwable cause() {
+        return null;
+    }
+
+    @Override
+    public <P> Try<P> map(Function<T, P> func) {
+        return Try.apply(func, value);
+    }
+
+    @Override
+    public <P> Try<P> flatmap(Function<T, Try<P>> func) {
+        try {
+            return func.apply(value);
+        } catch (Throwable e) {
+            return Try.failure(e);
+        }
+    }
+
+    @Override
+    public <P> Try<P> transform(Function<Try<T>, P> func) {
+        return Try.apply(func, this);
+    }
+
+    @Override
+    public void notify(EventPromise<T> promise) {
+        promise.success(value);
+    }
+}
