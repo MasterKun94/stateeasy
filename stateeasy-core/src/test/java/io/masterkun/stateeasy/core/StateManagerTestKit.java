@@ -20,5 +20,9 @@ public class StateManagerTestKit {
         public String get(String key) {
             return data.get(key);
         }
+
+        public int size() {
+            return data.size();
+        }
     }
 }

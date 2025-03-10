@@ -45,7 +45,7 @@ public abstract class AbstractStateManager<STATE, EVENT, STATE_DEF extends State
                 interval, interval, TimeUnit.MILLISECONDS);
         return stateStore.initialize(stateDef)
                 .thenComposeAsync(v -> stateStore.read(), executor)
-                .thenAcceptAsync(read -> {
+                .thenComposeAsync(read -> {
                     if (read == null) {
                         this.state = stateDef.initialState();
                         this.eventId = -1;
@@ -56,11 +56,32 @@ public abstract class AbstractStateManager<STATE, EVENT, STATE_DEF extends State
                         this.snapshotId = read.snapshotId();
                     }
                     this.lastSnapshotEventId = eventId;
-                    internalInitialize();
+                    afterStart();
+                    CompletableFuture<Void> future = new CompletableFuture<>();
+                    eventStore.recover(eventId + 1, new EventStore.EventObserver<>() {
+                        @Override
+                        public void onEvent(EventStore.EventHolder<EVENT> holder) {
+                            executor.execute(() -> {
+                                internalUpdate(holder.event());
+                                eventId = holder.eventId();
+                            });
+                        }
+
+                        @Override
+                        public void onComplete() {
+                            future.complete(null);
+                        }
+
+                        @Override
+                        public void onError(Throwable error) {
+                            future.completeExceptionally(error);
+                        }
+                    });
+                    return future;
                 }, executor);
     }
 
-    protected abstract void internalInitialize();
+    protected abstract void afterStart();
 
     protected abstract STATE internalGetState();
 

@@ -11,7 +11,7 @@ public class SnapshotStateManager<STATE, EVENT>
     }
 
     @Override
-    protected void internalInitialize() {
+    protected void afterStart() {
     }
 
     @Override

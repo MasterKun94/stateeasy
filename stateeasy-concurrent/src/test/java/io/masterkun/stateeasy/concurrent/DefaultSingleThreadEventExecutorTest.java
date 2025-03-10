@@ -3,12 +3,16 @@ package io.masterkun.stateeasy.concurrent;
 import org.junit.Test;
 
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -92,5 +96,41 @@ public class DefaultSingleThreadEventExecutorTest {
     @Test
     public void test() throws Exception {
         new EventExecutorTestKit(new DefaultSingleThreadEventExecutor()).test();
+    }
+
+    @Test
+    public void testTimeoutCompletableFuture() throws Exception {
+        SingleThreadEventExecutor executor = new DefaultSingleThreadEventExecutor();
+        CompletableFuture<String> future = new CompletableFuture<>();
+        CompletableFuture<String> timeoutFuture = executor.timeout(future, 50, TimeUnit.MILLISECONDS);
+
+        assertFalse(timeoutFuture.isDone());
+        Thread.sleep(60);
+        assertTrue(timeoutFuture.isCompletedExceptionally());
+        assertTrue(timeoutFuture.isDone());
+        try {
+            timeoutFuture.get();
+            fail("Expected TimeoutException");
+        } catch (ExecutionException e) {
+            assertTrue(e.getCause() instanceof TimeoutException);
+        }
+    }
+
+    @Test
+    public void testTimeoutEventPromise() throws Exception {
+        SingleThreadEventExecutor executor = new DefaultSingleThreadEventExecutor();
+        EventPromise<String> promise = new DefaultEventPromise<>(executor);
+        EventPromise<String> timeoutPromise = executor.timeout(promise, 50, TimeUnit.MILLISECONDS);
+
+        assertFalse(timeoutPromise.isDone());
+        Thread.sleep(60);
+        assertTrue(timeoutPromise.isFailure());
+        assertTrue(timeoutPromise.isDone());
+        try {
+            promise.toFuture().get();
+            fail("Expected TimeoutException");
+        } catch (InterruptedException | ExecutionException e) {
+            assertTrue(e.getCause() instanceof TimeoutException);
+        }
     }
 }
