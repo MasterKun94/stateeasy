@@ -2,6 +2,12 @@ package io.masterkun.stateeasy.concurrent;
 
 import java.util.function.Function;
 
+/**
+ * Represents a successful computation with a value.
+ * This record is an implementation of the {@code Try<T>} interface, indicating that a computation has succeeded.
+ *
+ * @param <T> the type of the value in case of success
+ */
 public record Success<T>(T value) implements Try<T> {
     @Override
     public boolean isSuccess() {

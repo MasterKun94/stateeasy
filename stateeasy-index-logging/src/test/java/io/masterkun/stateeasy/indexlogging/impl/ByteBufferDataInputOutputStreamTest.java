@@ -1,7 +1,5 @@
 package io.masterkun.stateeasy.indexlogging.impl;
 
-import io.masterkun.stateeasy.indexlogging.impl.ByteBufferDataInputStream;
-import io.masterkun.stateeasy.indexlogging.impl.ByteBufferDataOutputStream;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -12,7 +10,7 @@ public class ByteBufferDataInputOutputStreamTest {
 
     @Test
     public void test() throws Exception {
-        io.masterkun.stateeasy.indexlogging.impl.ByteBufferDataOutputStream dout = new ByteBufferDataOutputStream(true, 16, 4096);
+        ByteBufferDataOutputStream dout = new ByteBufferDataOutputStream(true, 16, 4096);
         dout.write(1);
         dout.write(new byte[]{1, 2, 3, 4});
         dout.write(new byte[]{1, 2, 3, 4, 5});
@@ -30,7 +28,7 @@ public class ByteBufferDataInputOutputStreamTest {
         dout.write(ByteBuffer.wrap(new byte[]{5, 6, 7, 8}), 0, 4);
         dout.write(ByteBuffer.wrap(new byte[]{6, 7, 8, 9}));
         ByteBuffer buffer = dout.getBuffer();
-        io.masterkun.stateeasy.indexlogging.impl.ByteBufferDataInputStream din = new ByteBufferDataInputStream(buffer.flip());
+        ByteBufferDataInputStream din = new ByteBufferDataInputStream(buffer.flip());
         Assert.assertEquals(1, din.read());
         byte[] buf = new byte[4];
         Assert.assertEquals(4, din.read(buf));

@@ -1,7 +1,5 @@
 package io.masterkun.stateeasy.indexlogging.impl;
 
-import io.masterkun.stateeasy.indexlogging.impl.LogSegmentRecord;
-
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 

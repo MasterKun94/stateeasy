@@ -1,7 +1,10 @@
 package io.masterkun.stateeasy.indexlogging;
 
-import io.masterkun.stateeasy.indexlogging.IdAndOffset;
-import io.masterkun.stateeasy.indexlogging.LogObserver;
+import io.masterkun.stateeasy.concurrent.EventExecutor;
+import io.masterkun.stateeasy.concurrent.EventPromise;
+import io.masterkun.stateeasy.concurrent.EventStage;
+import io.masterkun.stateeasy.concurrent.EventStageListener;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -46,13 +49,25 @@ public interface EventLogger<T> {
     }
 
     /**
-     * Asynchronously writes the given object to the log and notifies a listener upon completion or error.
+     * Asynchronously writes the given object to the log and notifies the provided listener upon completion or error.
      *
      * @param obj      the object to be written to the log
      * @param listener the listener to be notified with the ID and offset of the written log entry, or any errors
      */
-    default void write(T obj, FlushListener listener) {
+    default void write(T obj, EventStageListener<IdAndOffset> listener) {
         write(obj, false, listener);
+    }
+
+    /**
+     * Asynchronously writes the given object to the log with an optional promise.
+     *
+     * @param obj     the object to be written to the log
+     * @param promise the optional promise to be completed with the ID and offset of the written log entry, or any errors;
+     *                if null, a new promise is created
+     * @return the promise that will be completed with the ID and offset of the written log entry once the write operation is complete
+     */
+    default EventStage<IdAndOffset> write(T obj, @Nullable EventPromise<IdAndOffset> promise) {
+        return write(obj, false, promise);
     }
 
     /**
@@ -74,8 +89,21 @@ public interface EventLogger<T> {
      * @param flush    if true, the write operation will be followed by a flush to ensure data is persisted
      * @param listener the listener to be notified with the ID and offset of the written log entry, or any errors
      */
-    default void write(T obj, boolean flush, FlushListener listener) {
+    default void write(T obj, boolean flush, EventStageListener<IdAndOffset> listener) {
         write(obj, flush, false, listener);
+    }
+
+    /**
+     * Asynchronously writes the given object to the log with an option to flush and an optional promise.
+     *
+     * @param obj     the object to be written to the log
+     * @param flush   if true, the write operation will be followed by a flush to ensure data is persisted
+     * @param promise the optional promise to be completed with the ID and offset of the written log entry, or any errors;
+     *                if null, a new promise is created
+     * @return the promise that will be completed with the ID and offset of the written log entry once the write operation is complete
+     */
+    default EventStage<IdAndOffset> write(T obj, boolean flush, @Nullable EventPromise<IdAndOffset> promise) {
+        return write(obj, flush, false, promise);
     }
 
     /**
@@ -88,17 +116,48 @@ public interface EventLogger<T> {
      * @return a CompletableFuture that will be completed with an IdAndOffset representing the ID and offset
      * of the written log entry once the write operation is complete
      */
-    CompletableFuture<IdAndOffset> write(T obj, boolean flush, boolean immediateCallback);
+    default CompletableFuture<IdAndOffset> write(T obj, boolean flush, boolean immediateCallback) {
+        CompletableFuture<IdAndOffset> future = new CompletableFuture<>();
+        write(obj, flush, immediateCallback, new EventStageListener<IdAndOffset>() {
+            @Override
+            public void success(IdAndOffset value) {
+                future.complete(value);
+            }
+
+            @Override
+            public void failure(Throwable cause) {
+                future.completeExceptionally(cause);
+            }
+        });
+        return future;
+    }
 
     /**
-     * Asynchronously writes the given object to the log with options for flushing and immediate callback, and notifies a listener upon completion or error.
+     * Asynchronously writes the given object to the log with options for flushing, immediate callback, and a listener for completion or error.
      *
      * @param obj               the object to be written to the log
      * @param flush             if true, the write operation will be followed by a flush to ensure data is persisted
      * @param immediateCallback if true, the callback will be invoked immediately after the write operation, otherwise, it will be invoked after the data is persisted
      * @param listener          the listener to be notified with the ID and offset of the written log entry, or any errors
      */
-    void write(T obj, boolean flush, boolean immediateCallback, FlushListener listener);
+    void write(T obj, boolean flush, boolean immediateCallback, EventStageListener<IdAndOffset> listener);
+
+    /**
+     * Asynchronously writes the given object to the log with options for flushing, immediate callback, and an optional promise.
+     *
+     * @param obj               the object to be written to the log
+     * @param flush             if true, the write operation will be followed by a flush to ensure data is persisted
+     * @param immediateCallback if true, the callback will be invoked immediately after the write operation, otherwise, it will be invoked after the data is persisted
+     * @param promise           the optional promise to be completed with the ID and offset of the written log entry, or any errors; if null, a new promise is created
+     * @return the promise that will be completed with the ID and offset of the written log entry once the write operation is complete
+     */
+    default EventStage<IdAndOffset> write(T obj, boolean flush, boolean immediateCallback, @Nullable EventPromise<IdAndOffset> promise) {
+        if (promise == null) {
+            promise = EventPromise.newPromise(executor());
+        }
+        write(obj, flush, immediateCallback, (EventStageListener<IdAndOffset>) promise);
+        return promise;
+    }
 
     /**
      * Reads log entries starting from the specified ID and invokes the provided observer for each entry.
@@ -107,7 +166,7 @@ public interface EventLogger<T> {
      * @param limit    the maximum number of log entries to read
      * @param observer the observer to be notified with each log entry, its completion, or any errors
      */
-    void read(long startId, int limit, io.masterkun.stateeasy.indexlogging.LogObserver<T> observer);
+    void read(long startId, int limit, LogObserver<T> observer);
 
     /**
      * Reads log entries starting from the specified offset and ID, and invokes the provided observer for each entry.
@@ -117,7 +176,7 @@ public interface EventLogger<T> {
      * @param limit       the maximum number of log entries to read
      * @param observer    the observer to be notified with each log entry, its completion, or any errors
      */
-    void read(long startOffset, long startId, int limit, io.masterkun.stateeasy.indexlogging.LogObserver<T> observer);
+    void read(long startOffset, long startId, int limit, LogObserver<T> observer);
 
     /**
      * Reads log entries starting from the specified ID and offset, and invokes the provided observer for each entry.
@@ -136,4 +195,11 @@ public interface EventLogger<T> {
      * @param idBefore the ID before which all log segments will be cleaned up
      */
     void expire(long idBefore);
+
+    /**
+     * Returns the {@link EventExecutor} responsible for handling tasks within this {@link EventLogger}.
+     *
+     * @return the internal {@link EventExecutor}
+     */
+    EventExecutor executor();
 }

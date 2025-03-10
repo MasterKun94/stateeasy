@@ -86,7 +86,31 @@ public class IncrementalSnapshotStateManagerTest {
         manager.shutdown().join();
     }
 
+    @Test
+    public void testQueryWithSimpleState() throws Exception {
+        StateStore<TestState> stateStore = new TestStateStore<>();
+        var stateDef = new TestStateDef(stateStore);
 
+        StateManager<TestState, TestEvent> manager = new IncrementalSnapshotStateManager<>(
+                Executors.newSingleThreadScheduledExecutor(), stateDef);
+        manager.start().join();
+        Assert.assertEquals(0, manager.query(TestState::size).join().intValue());
+        manager.shutdown().join();
+    }
+
+    @Test
+    public void testQueryWithUpdatedState() throws Exception {
+        StateStore<TestState> stateStore = new TestStateStore<>();
+        var stateDef = new TestStateDef(stateStore);
+
+        StateManager<TestState, TestEvent> manager = new IncrementalSnapshotStateManager<>(
+                Executors.newSingleThreadScheduledExecutor(), stateDef);
+        manager.start().join();
+        manager.send(new TestEvent("key", "value")).join();
+        Assert.assertEquals(1, manager.query(TestState::size).join().intValue());
+        Assert.assertEquals("value", manager.query(state -> state.get("key")).join());
+        manager.shutdown().join();
+    }
 
     public static class TestStateDef implements IncrementalSnapshotStateDef<TestState, TestEvent> {
         private final StateStore<TestState> stateStore;
@@ -140,31 +164,5 @@ public class IncrementalSnapshotStateManagerTest {
         public EventStore<TestEvent> eventStore(ScheduledExecutorService executor) {
             return eventStore;
         }
-    }
-
-    @Test
-    public void testQueryWithSimpleState() throws Exception {
-        StateStore<TestState> stateStore = new TestStateStore<>();
-        var stateDef = new TestStateDef(stateStore);
-
-        StateManager<TestState, TestEvent> manager = new IncrementalSnapshotStateManager<>(
-                Executors.newSingleThreadScheduledExecutor(), stateDef);
-        manager.start().join();
-        Assert.assertEquals(0, manager.query(TestState::size).join().intValue());
-        manager.shutdown().join();
-    }
-
-    @Test
-    public void testQueryWithUpdatedState() throws Exception {
-        StateStore<TestState> stateStore = new TestStateStore<>();
-        var stateDef = new TestStateDef(stateStore);
-
-        StateManager<TestState, TestEvent> manager = new IncrementalSnapshotStateManager<>(
-                Executors.newSingleThreadScheduledExecutor(), stateDef);
-        manager.start().join();
-        manager.send(new TestEvent("key", "value")).join();
-        Assert.assertEquals(1, manager.query(TestState::size).join().intValue());
-        Assert.assertEquals("value", manager.query(state -> state.get("key")).join());
-        manager.shutdown().join();
     }
 }

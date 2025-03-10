@@ -1,10 +1,6 @@
 package io.masterkun.stateeasy.indexlogging;
 
-import io.masterkun.stateeasy.indexlogging.EventLogger;
-import io.masterkun.stateeasy.indexlogging.ExecutorPool;
-import io.masterkun.stateeasy.indexlogging.HasMetrics;
-import io.masterkun.stateeasy.indexlogging.LogConfig;
-import io.masterkun.stateeasy.indexlogging.Serializer;
+import io.masterkun.stateeasy.concurrent.EventExecutor;
 import io.masterkun.stateeasy.indexlogging.impl.EventLoggerImpl;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.jetbrains.annotations.Nullable;
@@ -22,7 +18,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * A logging system that manages and provides {@link io.masterkun.stateeasy.indexlogging.EventLogger} instances based on provided configurations.
+ * A logging system that manages and provides {@link EventLogger} instances based on provided configurations.
  * It ensures that each logger is uniquely identified by its configuration, serializer, and optional reader executor.
  * The system also supports metrics registration for monitoring purposes.
  */
@@ -31,7 +27,7 @@ public final class LogSystem implements HasMetrics {
     private static final AtomicInteger INSTANCE_ADDER = new AtomicInteger();
     private final int instanceId = INSTANCE_ADDER.getAndIncrement();
     private final Map<String, LoggerHolder> cache = new ConcurrentHashMap<>();
-    private final io.masterkun.stateeasy.indexlogging.ExecutorPool executorPool;
+    private final ExecutorPool executorPool;
     private volatile MetricRegister register;
     private volatile boolean shutdown;
 
@@ -46,43 +42,43 @@ public final class LogSystem implements HasMetrics {
     }
 
     /**
-     * Retrieves or creates an {@link io.masterkun.stateeasy.indexlogging.EventLogger} for the given configuration and serializer.
+     * Retrieves or creates an {@link EventLogger} for the given configuration and serializer.
      *
      * @param <T>        the type of the objects to be logged
      * @param config     the configuration for the logger
      * @param serializer the serializer for converting objects to a byte stream
-     * @return an {@link io.masterkun.stateeasy.indexlogging.EventLogger} instance configured with the provided parameters
+     * @return an {@link EventLogger} instance configured with the provided parameters
      * @throws IOException              if an I/O error occurs during the creation of the logger
      * @throws IllegalArgumentException if a logger with different parameters already exists for the given configuration
      */
-    public <T> io.masterkun.stateeasy.indexlogging.EventLogger<T> get(io.masterkun.stateeasy.indexlogging.LogConfig config,
-                                                                    io.masterkun.stateeasy.indexlogging.Serializer<T> serializer) throws IOException {
+    public <T> EventLogger<T> get(LogConfig config,
+                                  Serializer<T> serializer) throws IOException {
         return get(config, serializer, null);
     }
 
     /**
-     * Retrieves or creates an {@link io.masterkun.stateeasy.indexlogging.EventLogger} for the given configuration, serializer, and optional reader executor.
+     * Retrieves or creates an {@link EventLogger} for the given configuration, serializer, and optional reader executor.
      *
      * @param <T>            the type of the objects to be logged
      * @param config         the configuration for the logger
      * @param serializer     the serializer for converting objects to a byte stream
-     * @param readerExecutor the executor for reading log entries, may be null
-     * @return an {@link io.masterkun.stateeasy.indexlogging.EventLogger} instance configured with the provided parameters
+     * @param readerExecutor the optional executor for reading events, can be null
+     * @return an {@link EventLogger} instance configured with the provided parameters
      * @throws IOException              if an I/O error occurs during the creation of the logger
-     * @throws IllegalArgumentException if a logger with different parameters already exists for the given configuration
+     * @throws IllegalArgumentException if a logger with different parameters already exists for the given configuration or if the system is already shut down
      */
-    public <T> io.masterkun.stateeasy.indexlogging.EventLogger<T> get(io.masterkun.stateeasy.indexlogging.LogConfig config,
-                                                                    io.masterkun.stateeasy.indexlogging.Serializer<T> serializer,
-                                                                    @Nullable Executor readerExecutor) throws IOException {
+    public <T> EventLogger<T> get(LogConfig config,
+                                  Serializer<T> serializer,
+                                  @Nullable EventExecutor readerExecutor) throws IOException {
         if (shutdown) {
             throw new IllegalArgumentException("system already closed");
         }
         try {
             //noinspection unchecked
-            return (io.masterkun.stateeasy.indexlogging.EventLogger<T>) cache.compute(config.name(), (key, holder) -> {
+            return (EventLogger<T>) cache.compute(config.name(), (key, holder) -> {
                 if (holder == null) {
                     try {
-                        io.masterkun.stateeasy.indexlogging.EventLogger<?> logger = new EventLoggerImpl<>(config.name(), config,
+                        EventLogger<?> logger = new EventLoggerImpl<>(config.name(), config,
                                 serializer, executorPool.getOrCreate(config.logDir()),
                                 readerExecutor);
                         if (register != null) {
@@ -178,12 +174,12 @@ public final class LogSystem implements HasMetrics {
     }
 
     private interface MetricRegister {
-        void register(io.masterkun.stateeasy.indexlogging.EventLogger<?> logger);
+        void register(EventLogger<?> logger);
     }
 
     private record LoggerHolder(EventLogger<?> logger,
-                                io.masterkun.stateeasy.indexlogging.LogConfig config,
-                                io.masterkun.stateeasy.indexlogging.Serializer<?> serializer,
+                                LogConfig config,
+                                Serializer<?> serializer,
                                 Executor readerExecutor) implements Closeable {
         boolean match(LogConfig config,
                       Serializer<?> serializer,

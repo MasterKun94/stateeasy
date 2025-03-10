@@ -1,12 +1,9 @@
 package io.masterkun.stateeasy.indexlogging.impl;
 
+import io.masterkun.stateeasy.concurrent.EventExecutor;
 import io.masterkun.stateeasy.indexlogging.HasMetrics;
 import io.masterkun.stateeasy.indexlogging.Serializer;
 import io.masterkun.stateeasy.indexlogging.exception.LogFullException;
-import io.masterkun.stateeasy.indexlogging.impl.ByteBufferDataOutputStream;
-import io.masterkun.stateeasy.indexlogging.impl.LogIndexer;
-import io.masterkun.stateeasy.indexlogging.impl.MappedByteBufferLogReader;
-import io.masterkun.stateeasy.indexlogging.impl.Utils;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -19,17 +16,16 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-final class MappedByteBufferLogWriter implements io.masterkun.stateeasy.indexlogging.impl.LogWriter, HasMetrics {
+final class MappedByteBufferLogWriter implements LogWriter, HasMetrics {
     private static final Logger LOG = LoggerFactory.getLogger(MappedByteBufferLogWriter.class);
 
     private final MappedByteBuffer buffer;
-    private final io.masterkun.stateeasy.indexlogging.impl.LogReader reader;
+    private final LogReader reader;
     private final LogIndexer indexer;
-    private final ScheduledExecutorService executor;
+    private final EventExecutor executor;
     private final int autoFlushSize;
     private final long autoFlushIntervalNs;
     private final LogDataOut reuseOut;
@@ -42,10 +38,10 @@ final class MappedByteBufferLogWriter implements io.masterkun.stateeasy.indexlog
     private Timer syncTimer;
     private Counter eventsWrite;
 
-    MappedByteBufferLogWriter(io.masterkun.stateeasy.indexlogging.impl.LogReader reader, LogIndexer indexer,
-                              ScheduledExecutorService executor,
-                              int autoFlushSize, Duration autoFlushInterval,
-                              boolean serializeBufferDirect, int serializeBufferSizeInit, int serializeBufferSizeMax) {
+    MappedByteBufferLogWriter(LogReader reader, LogIndexer indexer,
+                              EventExecutor executor, int autoFlushSize, Duration autoFlushInterval,
+                              boolean serializeBufferDirect, int serializeBufferSizeInit,
+                              int serializeBufferSizeMax) {
         this.buffer = ((MappedByteBufferLogReader) reader).getBufferForWrite();
         this.reader = reader;
         this.indexer = indexer;
@@ -59,16 +55,19 @@ final class MappedByteBufferLogWriter implements io.masterkun.stateeasy.indexlog
 
     @Override
     public Serializer.DataOut open(boolean immediateFlush, WriteListener callback) {
+        assert executor.inExecutor();
         return reuseOut.reset(immediateFlush, callback);
     }
 
     @Override
     public void flush() {
+        assert executor.inExecutor();
         sync();
     }
 
     @Override
     public void addListener(int startFromId, long timeoutMills, ReadListener listener) {
+        assert executor.inExecutor();
         if (indexer.endId() >= startFromId) {
             listener.onFlush();
         } else {
@@ -123,15 +122,15 @@ final class MappedByteBufferLogWriter implements io.masterkun.stateeasy.indexlog
             }
             assert writeId >= 0;
             assert writeOffset >= 0;
-            indexer.update(writeId, writeOffset);
+            indexer.append(writeId, writeOffset);
         }
     }
 
     @Override
     public void register(String metricPrefix, MeterRegistry registry, String... tags) {
-        String timerTime = io.masterkun.stateeasy.indexlogging.impl.Utils.metricName(metricPrefix, "event.logger.writer.sync");
+        String timerTime = Utils.metricName(metricPrefix, "event.logger.writer.sync");
         syncTimer = registry.timer(timerTime, tags);
-        String counterName = io.masterkun.stateeasy.indexlogging.impl.Utils.metricName(metricPrefix, "event.logger.writer.events.write");
+        String counterName = Utils.metricName(metricPrefix, "event.logger.writer.events.write");
         eventsWrite = registry.counter(counterName, tags);
     }
 

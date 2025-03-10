@@ -1,16 +1,12 @@
 package io.masterkun.stateeasy.concurrent;
 
 import org.junit.Test;
-import org.mockito.Mockito;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class DefaultEventFutureTest {
     private static final EventExecutor executor = new DefaultSingleThreadEventExecutor();
@@ -60,6 +56,7 @@ public class DefaultEventFutureTest {
         assertTrue(result.isFailure());
         assertEquals(TimeoutException.class, result.cause().getClass());
     }
+
     @Test
     public void testMapSuccess() throws InterruptedException {
         DefaultEventFuture<String> future = new DefaultEventFuture<>(executor);

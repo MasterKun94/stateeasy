@@ -8,8 +8,6 @@ import java.time.Duration;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
-import static org.junit.Assert.assertEquals;
-
 public class SnapshotStateManagerTest {
 
     @Test

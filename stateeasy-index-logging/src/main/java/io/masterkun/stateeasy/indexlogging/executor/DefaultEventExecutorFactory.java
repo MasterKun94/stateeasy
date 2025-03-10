@@ -4,7 +4,6 @@ import io.masterkun.stateeasy.concurrent.DefaultSingleThreadEventExecutor;
 import io.masterkun.stateeasy.concurrent.EventExecutor;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 
 public class DefaultEventExecutorFactory implements EventExecutorFactory {

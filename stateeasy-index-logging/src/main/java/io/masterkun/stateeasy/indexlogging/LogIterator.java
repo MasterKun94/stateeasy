@@ -1,6 +1,5 @@
 package io.masterkun.stateeasy.indexlogging;
 
-import io.masterkun.stateeasy.indexlogging.LogRecord;
 import io.masterkun.stateeasy.indexlogging.impl.LogSegmentIterator;
 
 import java.util.Iterator;

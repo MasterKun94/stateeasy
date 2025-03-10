@@ -1,6 +1,5 @@
 package io.masterkun.stateeasy.indexlogging;
 
-import io.masterkun.stateeasy.indexlogging.IdAndOffset;
 import io.masterkun.stateeasy.indexlogging.impl.LogSegmentRecord;
 
 import java.util.Objects;

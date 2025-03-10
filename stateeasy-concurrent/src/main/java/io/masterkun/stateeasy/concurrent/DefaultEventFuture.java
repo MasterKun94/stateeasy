@@ -9,6 +9,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 
+/**
+ * A default implementation of the EventFuture interface that extends DefaultEventPromise.
+ * This class is designed to handle asynchronous events and their results, providing methods
+ * to manage the lifecycle of an event, including success, failure, and cancellation.
+ * It uses a CountDownLatch to synchronize on the completion of the event.
+ *
+ * @param <T> The type of the result of the event.
+ */
 class DefaultEventFuture<T> extends DefaultEventPromise<T> implements EventFuture<T> {
     private final CountDownLatch latch = new CountDownLatch(1);
 

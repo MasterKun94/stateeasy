@@ -58,7 +58,7 @@ public class DefaultEventPromise<T> implements EventPromise<T> {
                     handler.accept(listener, param);
                 } catch (Throwable e) {
                     try {
-                        listener.failure(new ListenerCompleteException(e));
+                        listener.failure(e);
                     } catch (Throwable e0) {
                         LOG.error("Listener unexpected throw error [{}] and handle failed", e, e0);
                     }
@@ -128,7 +128,7 @@ public class DefaultEventPromise<T> implements EventPromise<T> {
                 case success:
                     doFireListener((T) obj, EventStageListener::success);
                     break;
-                case failure,cancel:
+                case failure, cancel:
                     doFireListener((Throwable) obj, EventStageListener::failure);
                     break;
                 default:
@@ -163,7 +163,7 @@ public class DefaultEventPromise<T> implements EventPromise<T> {
         return switch (status) {
             case pending -> null;
             case success -> Try.success((T) obj);
-            case failure,cancel -> Try.failure((Throwable) obj);
+            case failure, cancel -> Try.failure((Throwable) obj);
             default -> throw new IllegalArgumentException("illegal status: " + status);
         };
     }

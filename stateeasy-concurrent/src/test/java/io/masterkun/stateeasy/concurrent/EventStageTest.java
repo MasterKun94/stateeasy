@@ -1,15 +1,13 @@
 package io.masterkun.stateeasy.concurrent;
 
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class EventStageTest {
     EventExecutor executor = new DefaultSingleThreadEventExecutor();
@@ -79,9 +77,11 @@ public class EventStageTest {
         }
         assertTrue(stage.isFailure());
     }
+
     @Test
     public void testRunAsyncSuccess() throws Exception {
-        Runnable runnable = () -> {};
+        Runnable runnable = () -> {
+        };
         EventStage<Void> stage = EventStage.runAsync(runnable, executor);
 
         CompletableFuture<Void> future = stage.toCompletableFuture();
@@ -109,7 +109,8 @@ public class EventStageTest {
 
     @Test
     public void testRunAsyncIsDone() throws Exception {
-        Runnable runnable = () -> {};
+        Runnable runnable = () -> {
+        };
         EventStage<Void> stage = EventStage.runAsync(runnable, executor);
 
         CompletableFuture<Void> future = stage.toCompletableFuture();
@@ -119,7 +120,8 @@ public class EventStageTest {
 
     @Test
     public void testRunAsyncIsSuccess() throws Exception {
-        Runnable runnable = () -> {};
+        Runnable runnable = () -> {
+        };
         EventStage<Void> stage = EventStage.runAsync(runnable, executor);
 
         CompletableFuture<Void> future = stage.toCompletableFuture();

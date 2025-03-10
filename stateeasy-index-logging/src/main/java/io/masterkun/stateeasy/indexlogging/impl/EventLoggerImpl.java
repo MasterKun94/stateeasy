@@ -1,7 +1,8 @@
 package io.masterkun.stateeasy.indexlogging.impl;
 
+import io.masterkun.stateeasy.concurrent.EventExecutor;
+import io.masterkun.stateeasy.concurrent.EventStageListener;
 import io.masterkun.stateeasy.indexlogging.EventLogger;
-import io.masterkun.stateeasy.indexlogging.FlushListener;
 import io.masterkun.stateeasy.indexlogging.HasMetrics;
 import io.masterkun.stateeasy.indexlogging.IdAndOffset;
 import io.masterkun.stateeasy.indexlogging.LogConfig;
@@ -26,9 +27,6 @@ import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * An implementation of the {@link EventLogger} interface that manages a series of log segments for storing and retrieving events.
@@ -49,8 +47,8 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics, Clo
     private final Deque<LogSegment<T>> segments = new ArrayDeque<>();
     private final LogConfig segmentConfig;
     private final Serializer<T> serializer;
-    private final ScheduledExecutorService executor;
-    private final Executor readerExecutor;
+    private final EventExecutor executor;
+    private final EventExecutor readerExecutor;
     private final FileLock dirLock;
     private final FileOutputStream lockStream;
     private LogSegment<T> currentSegment;
@@ -59,8 +57,8 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics, Clo
     public EventLoggerImpl(String name,
                            LogConfig config,
                            Serializer<T> serializer,
-                           ScheduledExecutorService executor,
-                           Executor readerExecutor) throws IOException {
+                           EventExecutor executor,
+                           EventExecutor readerExecutor) throws IOException {
         this.name = name;
         File logDir = config.logDir();
         // 获取目录锁
@@ -148,53 +146,43 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics, Clo
     }
 
     @Override
-    public CompletableFuture<IdAndOffset> write(T obj, boolean flush, boolean immediateCallback) {
-        CompletableFuture<IdAndOffset> future = new CompletableFuture<>();
-        write(obj, flush, immediateCallback, new FlushListener() {
-            @Override
-            public void onReceive(IdAndOffset idAndOffset) {
-                future.complete(idAndOffset);
-            }
-
-            @Override
-            public void onError(Throwable e) {
-                future.completeExceptionally(e);
-            }
-        });
-        return future;
-    }
-
-    @Override
-    public void write(T obj, boolean flush, boolean immediateCallback, FlushListener listener) {
+    public void write(T obj, boolean flush, boolean immediateCallback, EventStageListener<IdAndOffset> listener) {
         if (closed) {
-            listener.onError(new RuntimeException("already closed"));
+            listener.failure(new RuntimeException("already closed"));
             return;
         }
         var callback = new CallbackAdaptor(listener, immediateCallback);
-        executor.execute(() -> {
-            if (closed) {
-                callback.onError(new RuntimeException("already closed"));
-                return;
-            }
-            if (!currentSegment.getWriter().put(obj, callback, flush)) {
-                try {
-                    LOG.info("IndexLogger[{}] creating new segment at id={}, offset={}",
-                            name, currentSegment.endId(), currentSegment.endOffset());
-                    currentSegment.setReadOnly();
-                    assert currentSegment.endId() == currentSegment.nextId() - 1;
-                    var newSegment = LogSegment.create(segmentConfig, currentSegment.nextId(),
-                            currentSegment.nextOffset(), executor, serializer);
-                    segments.addFirst(newSegment);
-                    currentSegment = newSegment;
-                    if (!currentSegment.getWriter().put(obj, callback, flush)) {
-                        throw new IllegalArgumentException("should never happen");
-                    }
-                    executor.execute(this::segmentCleanup);
-                } catch (Throwable e) {
-                    callback.onError(e);
+        if (executor.inExecutor()) {
+            doWrite(obj, flush, callback);
+        } else {
+            executor.execute(() -> doWrite(obj, flush, callback));
+        }
+    }
+
+    private void doWrite(T obj, boolean flush, Callback callback) {
+        assert executor.inExecutor();
+        if (closed) {
+            callback.onError(new RuntimeException("already closed"));
+            return;
+        }
+        if (!currentSegment.getWriter().put(obj, callback, flush)) {
+            try {
+                LOG.info("IndexLogger[{}] creating new segment at id={}, offset={}",
+                        name, currentSegment.endId(), currentSegment.endOffset());
+                currentSegment.setReadOnly();
+                assert currentSegment.endId() == currentSegment.nextId() - 1;
+                var newSegment = LogSegment.create(segmentConfig, currentSegment.nextId(),
+                        currentSegment.nextOffset(), executor, serializer);
+                segments.addFirst(newSegment);
+                currentSegment = newSegment;
+                if (!currentSegment.getWriter().put(obj, callback, flush)) {
+                    throw new IllegalArgumentException("should never happen");
                 }
+                executor.execute(this::segmentCleanup);
+            } catch (Throwable e) {
+                callback.onError(e);
             }
-        });
+        }
     }
 
     @Override
@@ -208,59 +196,78 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics, Clo
             observer.onError(new RuntimeException("already closed"));
             return;
         }
-        for (LogSegment<T> segment : segments) {
-            if (segment.startId() <= startId) {
-                if (segment == currentSegment) {
-                    readerExecutor.execute(() -> {
-                        if (closed) {
-                            observer.onError(new RuntimeException("already closed"));
-                            return;
-                        }
-                        try {
-                            var iter = segment.getReader().get(startOffset, startId, limit);
-                            if (iter.hasNext()) {
-                                do {
-                                    var next = iter.next();
-                                    observer.onNext(next.id(), next.offset(), next.value());
-                                } while (iter.hasNext());
-                                observer.onComplete(iter.nextId(), iter.nextOffset());
-                            } else if (readerExecutor == executor) {
-                                addReadListener(segment, startOffset, startId, limit, observer);
-                            } else {
-                                executor.execute(() -> addReadListener(segment, startOffset, startId, limit, observer));
-                            }
-                        } catch (Throwable e) {
-                            observer.onError(e);
-                        }
-                    });
-                    return;
-                } else {
-                    readerExecutor.execute(() -> {
-                        if (closed) {
-                            observer.onError(new RuntimeException("already closed"));
-                            return;
-                        }
-                        try {
-                            var iter = segment.getReader().get(startOffset, startId, limit);
-                            assert iter.hasNext();
-                            while (iter.hasNext()) {
-                                var next = iter.next();
-                                observer.onNext(next.id(), next.offset(), next.value());
-                            }
-                            observer.onComplete(iter.nextId(), iter.nextOffset());
-                        } catch (Throwable e) {
-                            observer.onError(e);
-                        }
-                    });
+        if (readerExecutor.inExecutor()) {
+            for (LogSegment<T> segment : segments) {
+                if (segment.startId() <= startId) {
+                    if (segment == currentSegment) {
+                        doReadCurrentSegment(segment, startOffset, startId, limit, observer);
+                    } else {
+                        doReadSegment(segment, startOffset, startId, limit, observer);
+                    }
                     return;
                 }
+            }
+        } else {
+            for (LogSegment<T> segment : segments) {
+                if (segment.startId() <= startId) {
+                    if (segment == currentSegment) {
+                        readerExecutor.execute(() -> doReadCurrentSegment(segment, startOffset, startId, limit, observer));
+                    } else {
+                        readerExecutor.execute(() -> doReadSegment(segment, startOffset, startId, limit, observer));
+                    }
+                    return;
 
+                }
             }
         }
         observer.onError(new IdExpiredException(startId));
     }
 
+    private void doReadCurrentSegment(LogSegment<T> segment, long startOffset, long startId, int limit, LogObserver<T> observer) {
+        assert readerExecutor.inExecutor();
+        if (closed) {
+            observer.onError(new RuntimeException("already closed"));
+            return;
+        }
+        try {
+            var iter = segment.getReader().get(startOffset, startId, limit);
+            if (iter.hasNext()) {
+                do {
+                    var next = iter.next();
+                    observer.onNext(next.id(), next.offset(), next.value());
+                } while (iter.hasNext());
+                observer.onComplete(iter.nextId(), iter.nextOffset());
+            } else if (readerExecutor == executor) {
+                addReadListener(segment, startOffset, startId, limit, observer);
+            } else {
+                executor.execute(() -> addReadListener(segment, startOffset, startId, limit, observer));
+            }
+        } catch (Throwable e) {
+            observer.onError(e);
+        }
+    }
+
+    private void doReadSegment(LogSegment<T> segment, long startOffset, long startId, int limit, LogObserver<T> observer) {
+        assert readerExecutor.inExecutor();
+        if (closed) {
+            observer.onError(new RuntimeException("already closed"));
+            return;
+        }
+        try {
+            var iter = segment.getReader().get(startOffset, startId, limit);
+            assert iter.hasNext();
+            while (iter.hasNext()) {
+                var next = iter.next();
+                observer.onNext(next.id(), next.offset(), next.value());
+            }
+            observer.onComplete(iter.nextId(), iter.nextOffset());
+        } catch (Throwable e) {
+            observer.onError(e);
+        }
+    }
+
     private void addReadListener(LogSegment<T> segment, long startOffset, long startId, int limit, LogObserver<T> observer) {
+        assert executor.inExecutor();
         if (closed) {
             observer.onError(new RuntimeException("already closed"));
             return;
@@ -270,7 +277,7 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics, Clo
             return;
         }
         segment.getWriter().addListener(startId, segmentConfig.readTimeout().toMillis(),
-                new io.masterkun.stateeasy.indexlogging.impl.LogWriter.ReadListener() {
+                new LogWriter.ReadListener() {
                     @Override
                     public void onTimeout() {
                         observer.onComplete(startId, startOffset);
@@ -349,12 +356,17 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics, Clo
         });
     }
 
+    @Override
+    public EventExecutor executor() {
+        return executor;
+    }
+
     private static class CallbackAdaptor implements Callback {
-        private final FlushListener listener;
+        private final EventStageListener<IdAndOffset> listener;
         private final boolean immediateCallback;
         private IdAndOffset idAndOffset;
 
-        private CallbackAdaptor(FlushListener listener, boolean immediateCallback) {
+        private CallbackAdaptor(EventStageListener<IdAndOffset> listener, boolean immediateCallback) {
             this.listener = listener;
             this.immediateCallback = immediateCallback;
         }
@@ -362,7 +374,7 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics, Clo
         @Override
         public void onAppend(long id, long offset) {
             if (immediateCallback) {
-                listener.onReceive(new IdAndOffset(id, offset));
+                listener.success(new IdAndOffset(id, offset));
             } else {
                 idAndOffset = new IdAndOffset(id, offset);
             }
@@ -371,13 +383,13 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics, Clo
         @Override
         public void onPersist() {
             if (!immediateCallback) {
-                listener.onReceive(idAndOffset);
+                listener.success(idAndOffset);
             }
         }
 
         @Override
         public void onError(Throwable e) {
-            listener.onError(e);
+            listener.failure(e);
         }
     }
 }

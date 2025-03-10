@@ -20,7 +20,7 @@ public class MemoryStateStore<STATE> implements StateStore<STATE> {
             throw new RuntimeException("Already initialized");
         }
         initialized = true;
-        if (stateDef instanceof IncrementalSnapshotStateDef<STATE,?> incStateDef) {
+        if (stateDef instanceof IncrementalSnapshotStateDef<STATE, ?> incStateDef) {
             incremental = true;
             stateMerger = incStateDef::merge;
         }

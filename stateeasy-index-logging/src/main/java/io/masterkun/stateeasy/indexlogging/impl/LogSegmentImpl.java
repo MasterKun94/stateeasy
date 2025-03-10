@@ -1,34 +1,28 @@
 package io.masterkun.stateeasy.indexlogging.impl;
 
+import io.masterkun.stateeasy.concurrent.EventExecutor;
 import io.masterkun.stateeasy.indexlogging.HasMetrics;
 import io.masterkun.stateeasy.indexlogging.LogConfig;
 import io.masterkun.stateeasy.indexlogging.LogIterator;
 import io.masterkun.stateeasy.indexlogging.Serializer;
 import io.masterkun.stateeasy.indexlogging.exception.LogFullException;
-import io.masterkun.stateeasy.indexlogging.impl.Callback;
-import io.masterkun.stateeasy.indexlogging.impl.LogIndexer;
-import io.masterkun.stateeasy.indexlogging.impl.LogSegment;
-import io.masterkun.stateeasy.indexlogging.impl.LogSegmentIterator;
-import io.masterkun.stateeasy.indexlogging.impl.MetaInfo;
-import io.masterkun.stateeasy.indexlogging.impl.Utils;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.concurrent.ScheduledExecutorService;
 
 public class LogSegmentImpl<T> implements LogSegment<T> {
     private static final Logger LOG = LoggerFactory.getLogger(LogSegmentImpl.class);
     private final Serializer<T> serializer;
-    private final io.masterkun.stateeasy.indexlogging.impl.MetaInfo metaInfo;
+    private final MetaInfo metaInfo;
     private final LogIndexer indexer;
-    private final io.masterkun.stateeasy.indexlogging.impl.LogReader reader;
+    private final LogReader reader;
     private final LogConfig config;
     private final long initId;
-    private io.masterkun.stateeasy.indexlogging.impl.LogWriter writer;
+    private LogWriter writer;
 
-    LogSegmentImpl(io.masterkun.stateeasy.indexlogging.impl.MetaInfo metaInfo, LogIndexer indexer, io.masterkun.stateeasy.indexlogging.impl.LogReader reader, io.masterkun.stateeasy.indexlogging.impl.LogWriter writer,
+    LogSegmentImpl(MetaInfo metaInfo, LogIndexer indexer, LogReader reader, LogWriter writer,
                    Serializer<T> serializer, LogConfig config, long initId) {
         this.metaInfo = metaInfo;
         this.indexer = indexer;
@@ -40,18 +34,18 @@ public class LogSegmentImpl<T> implements LogSegment<T> {
     }
 
     public static <T> LogSegmentImpl<T> create(LogConfig config, long initId, long initOffset,
-                                               ScheduledExecutorService executor,
+                                               EventExecutor executor,
                                                Serializer<T> serializer) throws IOException {
         if (!config.logDir().exists()) {
             config.logDir().mkdir();
         }
-        var metaInfo = io.masterkun.stateeasy.indexlogging.impl.MetaInfo.create(io.masterkun.stateeasy.indexlogging.impl.Utils.metaFile(config, initId), initId, initOffset,
+        var metaInfo = MetaInfo.create(Utils.metaFile(config, initId), initId, initOffset,
                 config.indexSizeMax(), config.segmentSizeMax());
-        var indexer = LogIndexer.create(io.masterkun.stateeasy.indexlogging.impl.Utils.indexFile(config, initId), config.indexSizeMax(),
+        var indexer = LogIndexer.create(Utils.indexFile(config, initId), config.indexSizeMax(),
                 config.indexChunkSize(), config.indexPersistSize(), config.indexPersistInterval(),
                 executor);
-        var reader = io.masterkun.stateeasy.indexlogging.impl.LogReader.create(io.masterkun.stateeasy.indexlogging.impl.Utils.logFile(config, initId), config.segmentSizeMax());
-        var writer = io.masterkun.stateeasy.indexlogging.impl.LogWriter.create(reader, indexer, executor, config.autoFlushSize(),
+        var reader = LogReader.create(Utils.logFile(config, initId), config.segmentSizeMax());
+        var writer = LogWriter.create(reader, indexer, executor, config.autoFlushSize(),
                 config.autoFlushInterval(), config.serializeBufferDirect(),
                 config.serializeBufferInit(), config.serializeBufferMax());
         LOG.info("LogSegment[{}-{}] is created", config.name(), initId);
@@ -59,16 +53,15 @@ public class LogSegmentImpl<T> implements LogSegment<T> {
     }
 
     public static <T> LogSegmentImpl<T> recover(LogConfig config, long initId,
-                                                ScheduledExecutorService executor,
-                                                Serializer<T> serializer,
+                                                EventExecutor executor, Serializer<T> serializer,
                                                 boolean readOnly) throws IOException {
-        var metaInfo = MetaInfo.recover(io.masterkun.stateeasy.indexlogging.impl.Utils.metaFile(config, initId));
-        var indexer = LogIndexer.recover(io.masterkun.stateeasy.indexlogging.impl.Utils.indexFile(config, initId), metaInfo.idxLimit(),
+        var metaInfo = MetaInfo.recover(Utils.metaFile(config, initId));
+        var indexer = LogIndexer.recover(Utils.indexFile(config, initId), metaInfo.idxLimit(),
                 config.indexChunkSize(), config.indexPersistSize(), config.indexPersistInterval(),
                 executor, readOnly);
-        var reader = io.masterkun.stateeasy.indexlogging.impl.LogReader.recover(io.masterkun.stateeasy.indexlogging.impl.Utils.logFile(config, initId), indexer, metaInfo.logLimit(), readOnly);
+        var reader = LogReader.recover(Utils.logFile(config, initId), indexer, metaInfo.logLimit(), readOnly);
         var writer = readOnly ? null :
-                io.masterkun.stateeasy.indexlogging.impl.LogWriter.create(reader, indexer, executor, config.autoFlushSize(),
+                LogWriter.create(reader, indexer, executor, config.autoFlushSize(),
                         config.autoFlushInterval(), config.serializeBufferDirect(),
                         config.serializeBufferInit(), config.serializeBufferMax());
         LOG.info("LogSegment[{}-{}] is recovered, readOnly={}", config.name(), initId, readOnly);
@@ -137,8 +130,8 @@ public class LogSegmentImpl<T> implements LogSegment<T> {
 
     @Override
     public void delete() {
-        io.masterkun.stateeasy.indexlogging.impl.Utils.metaFile(config, initId).delete();
-        io.masterkun.stateeasy.indexlogging.impl.Utils.logFile(config, initId).delete();
+        Utils.metaFile(config, initId).delete();
+        Utils.logFile(config, initId).delete();
         Utils.indexFile(config, initId).delete();
         LOG.info("LogSegment[{}-{}] is deleted", config.name(), initId);
     }
@@ -168,7 +161,7 @@ public class LogSegmentImpl<T> implements LogSegment<T> {
 
         @Override
         public boolean put(T value, Callback callback, boolean flush) {
-            try (Serializer.DataOut out = writer.open(flush, new io.masterkun.stateeasy.indexlogging.impl.LogWriter.WriteListener() {
+            try (Serializer.DataOut out = writer.open(flush, new LogWriter.WriteListener() {
                 @Override
                 public void onAppend(int id, int offset) {
                     callback.onAppend(realId(id), realOffset(offset));
@@ -194,7 +187,7 @@ public class LogSegmentImpl<T> implements LogSegment<T> {
         }
 
         @Override
-        public void addListener(long startFromId, long timeoutMills, io.masterkun.stateeasy.indexlogging.impl.LogWriter.ReadListener listener) {
+        public void addListener(long startFromId, long timeoutMills, LogWriter.ReadListener listener) {
             writer.addListener(innerId(startFromId), timeoutMills, listener);
         }
 
@@ -220,7 +213,7 @@ public class LogSegmentImpl<T> implements LogSegment<T> {
         private LogIterator<T> get(int offsetAfter, int id, int limit) {
             if (offsetAfter < 0) {
                 if (indexer.isEmpty()) {
-                    return new LogIterator<>(initId, metaInfo.initOffset(), io.masterkun.stateeasy.indexlogging.impl.LogSegmentIterator.empty(0, 0));
+                    return new LogIterator<>(initId, metaInfo.initOffset(), LogSegmentIterator.empty(0, 0));
                 }
                 offsetAfter = indexer.offsetBefore(id);
             }

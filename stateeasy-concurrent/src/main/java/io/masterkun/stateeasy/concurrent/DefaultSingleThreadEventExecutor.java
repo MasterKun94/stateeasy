@@ -29,6 +29,17 @@ import java.util.concurrent.locks.LockSupport;
 
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
+/**
+ * A single-threaded event executor that handles tasks and scheduled tasks in a first-in-first-out manner.
+ * This class extends {@link AbstractExecutorService} and implements the {@link SingleThreadEventExecutor} interface,
+ * providing a way to schedule tasks for execution after a delay or at fixed intervals.
+ *
+ * <p>The executor creates a single background thread to process all submitted tasks. It supports scheduling
+ * both one-time and periodic tasks, with options for fixed-rate and fixed-delay scheduling.
+ *
+ * @see AbstractExecutorService
+ * @see SingleThreadEventExecutor
+ */
 public class DefaultSingleThreadEventExecutor extends AbstractExecutorService
         implements SingleThreadEventExecutor {
     private static final Logger LOG = LoggerFactory.getLogger(DefaultSingleThreadEventExecutor.class);

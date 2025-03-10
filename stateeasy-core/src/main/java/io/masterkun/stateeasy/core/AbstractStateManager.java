@@ -19,8 +19,8 @@ public abstract class AbstractStateManager<STATE, EVENT, STATE_DEF extends State
     private final ScheduledExecutorService executor;
     private final EventStore<EVENT> eventStore;
     private final StateStore<STATE> stateStore;
-    private ScheduledFuture<?> snapshotTask;
     protected STATE state;
+    private ScheduledFuture<?> snapshotTask;
     private long snapshotId;
     private long eventId;
     private long lastSnapshotEventId = -1;

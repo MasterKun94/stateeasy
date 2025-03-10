@@ -1,20 +1,18 @@
 package io.masterkun.stateeasy.indexlogging.impl;
 
+import io.masterkun.stateeasy.concurrent.EventExecutor;
 import io.masterkun.stateeasy.indexlogging.HasMetrics;
-import io.masterkun.stateeasy.indexlogging.impl.LogIndexer;
-import io.masterkun.stateeasy.indexlogging.impl.Utils;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 
 import java.time.Duration;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 final class ChunkedLogIndexer implements LogIndexer, HasMetrics {
 
     private final MappedByteBufferLogIndexer indexer;
-    private final ScheduledExecutorService executor;
+    private final EventExecutor executor;
     private final int chunkSize;
     private final int persistSize;
     private final long persistIntervalNs;
@@ -24,7 +22,7 @@ final class ChunkedLogIndexer implements LogIndexer, HasMetrics {
     private ScheduledFuture<?> persistTask;
     private Timer syncTimer;
 
-    ChunkedLogIndexer(MappedByteBufferLogIndexer indexer, ScheduledExecutorService executor,
+    ChunkedLogIndexer(MappedByteBufferLogIndexer indexer, EventExecutor executor,
                       int chunkSize, int persistSize, Duration persistInterval) {
         this.indexer = indexer;
         this.executor = executor;
@@ -37,13 +35,13 @@ final class ChunkedLogIndexer implements LogIndexer, HasMetrics {
     }
 
     @Override
-    public void update(int id, int offset) {
+    public void append(int id, int offset) {
         assert currentId < id;
         assert currentOffset < offset;
         this.currentId = id;
         this.currentOffset = offset;
         if (offset - indexer.endOffset() > chunkSize) {
-            indexer.update(id, offset);
+            indexer.append(id, offset);
             if (offset - lastPersistOffset > persistSize) {
                 if (persistTask != null) {
                     persistTask.cancel(false);

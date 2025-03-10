@@ -11,7 +11,6 @@ import java.util.concurrent.ExecutionException;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 public class MemoryEventStoreTest {
 
@@ -59,6 +58,7 @@ public class MemoryEventStoreTest {
         CompletableFuture<List<EventHolder<String>>> future = new CompletableFuture<>();
         store.recover(1, new EventObserver<>() {
             List<EventHolder<String>> list = new ArrayList<>();
+
             @Override
             public void onEvent(EventHolder<String> event) {
                 list.add(event);

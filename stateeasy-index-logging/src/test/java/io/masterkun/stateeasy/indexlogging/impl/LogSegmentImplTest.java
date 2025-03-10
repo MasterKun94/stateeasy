@@ -1,13 +1,12 @@
 package io.masterkun.stateeasy.indexlogging.impl;
 
+import io.masterkun.stateeasy.concurrent.EventExecutor;
+import io.masterkun.stateeasy.concurrent.SingleThreadEventExecutor;
 import io.masterkun.stateeasy.indexlogging.LogConfig;
 import io.masterkun.stateeasy.indexlogging.LogIterator;
 import io.masterkun.stateeasy.indexlogging.LogObserver;
 import io.masterkun.stateeasy.indexlogging.LogRecord;
 import io.masterkun.stateeasy.indexlogging.Serializer;
-import io.masterkun.stateeasy.indexlogging.impl.Callback;
-import io.masterkun.stateeasy.indexlogging.impl.LogSegment;
-import io.masterkun.stateeasy.indexlogging.impl.LogSegmentImpl;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -21,7 +20,6 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Objects;
 import java.util.Queue;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
@@ -31,6 +29,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class LogSegmentImplTest {
 
@@ -69,7 +68,8 @@ public class LogSegmentImplTest {
                 .serializeBufferMax(1024 * 1024)
                 .build();
 
-        ScheduledExecutorService executor = Mockito.mock(ScheduledExecutorService.class);
+        EventExecutor executor = Mockito.mock(SingleThreadEventExecutor.class);
+        when(executor.inExecutor()).thenReturn(true);
         Serializer<byte[]> serializer = new Serializer<>() {
             @Override
             public void serialize(byte[] obj, DataOut out) throws IOException {
@@ -85,7 +85,7 @@ public class LogSegmentImplTest {
             }
         };
 
-        io.masterkun.stateeasy.indexlogging.impl.LogSegment<byte[]> logSegment = LogSegmentImpl.create(config, 1L, 2L, executor, serializer);
+        LogSegment<byte[]> logSegment = LogSegmentImpl.create(config, 1L, 2L, executor, serializer);
 
         assertNotNull(logSegment);
         assertEquals(1, logSegment.startId());

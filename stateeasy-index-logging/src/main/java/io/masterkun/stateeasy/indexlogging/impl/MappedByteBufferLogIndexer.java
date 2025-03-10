@@ -1,9 +1,6 @@
 package io.masterkun.stateeasy.indexlogging.impl;
 
 import io.masterkun.stateeasy.indexlogging.exception.LogCorruptException;
-import io.masterkun.stateeasy.indexlogging.impl.LogIndexer;
-import io.masterkun.stateeasy.indexlogging.impl.LogState;
-import io.masterkun.stateeasy.indexlogging.impl.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,7 +19,7 @@ final class MappedByteBufferLogIndexer implements LogIndexer {
     private int persistAt;
 
     MappedByteBufferLogIndexer(MappedByteBuffer buffer,
-                               io.masterkun.stateeasy.indexlogging.impl.LogState state) throws LogCorruptException {
+                               LogState state) throws LogCorruptException {
         this.buffer = buffer;
         int pos = buffer.position();
         switch (state) {
@@ -60,8 +57,8 @@ final class MappedByteBufferLogIndexer implements LogIndexer {
     }
 
     public static MappedByteBufferLogIndexer create(File file, int sizeLimit) throws IOException {
-        var buffer = io.masterkun.stateeasy.indexlogging.impl.Utils.create(file, sizeLimit);
-        return new MappedByteBufferLogIndexer(buffer, io.masterkun.stateeasy.indexlogging.impl.LogState.INIT);
+        var buffer = Utils.create(file, sizeLimit);
+        return new MappedByteBufferLogIndexer(buffer, LogState.INIT);
     }
 
     public static MappedByteBufferLogIndexer recover(File file, int sizeLimit, boolean readOnly) throws IOException {
@@ -88,21 +85,21 @@ final class MappedByteBufferLogIndexer implements LogIndexer {
             prevOff = off;
         }
         return new MappedByteBufferLogIndexer(buffer, readOnly ?
-                io.masterkun.stateeasy.indexlogging.impl.LogState.COMPLETE : LogState.WRITING);
+                LogState.COMPLETE : LogState.WRITING);
     }
 
     @Override
-    public void update(int id, int position) {
+    public void append(int id, int offset) {
         assert id > 0;
         if (id <= endId) {
             throw new IllegalArgumentException("id must be greater then last");
         }
-        if (position <= endOffset) {
+        if (offset <= endOffset) {
             throw new IllegalArgumentException("position must be greater then last");
         }
-        buffer.putLong(((long) id << 32) | (position & 0xFFFFFFFFL));
+        buffer.putLong(((long) id << 32) | (offset & 0xFFFFFFFFL));
         endId = id;
-        endOffset = position;
+        endOffset = offset;
     }
 
     public void persist() {

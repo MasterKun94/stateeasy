@@ -3,11 +3,6 @@ package io.masterkun.stateeasy.indexlogging.impl;
 import io.masterkun.stateeasy.indexlogging.HasMetrics;
 import io.masterkun.stateeasy.indexlogging.Serializer;
 import io.masterkun.stateeasy.indexlogging.exception.CrcCheckException;
-import io.masterkun.stateeasy.indexlogging.impl.ByteBufferDataInputStream;
-import io.masterkun.stateeasy.indexlogging.impl.LogIndexer;
-import io.masterkun.stateeasy.indexlogging.impl.LogSegmentIterator;
-import io.masterkun.stateeasy.indexlogging.impl.LogSegmentRecord;
-import io.masterkun.stateeasy.indexlogging.impl.Utils;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
@@ -17,7 +12,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.MappedByteBuffer;
 
-public final class MappedByteBufferLogReader implements io.masterkun.stateeasy.indexlogging.impl.LogReader, HasMetrics {
+public final class MappedByteBufferLogReader implements LogReader, HasMetrics {
     private static final Logger LOG = LoggerFactory.getLogger(MappedByteBufferLogReader.class);
 
     private static final int HEAD_LEN = 12;
@@ -32,12 +27,12 @@ public final class MappedByteBufferLogReader implements io.masterkun.stateeasy.i
     }
 
     public static MappedByteBufferLogReader create(File file, int sizeLimit) throws IOException {
-        var buffer = io.masterkun.stateeasy.indexlogging.impl.Utils.create(file, sizeLimit);
+        var buffer = Utils.create(file, sizeLimit);
         return new MappedByteBufferLogReader(buffer);
     }
 
     public static MappedByteBufferLogReader create(File file, LogIndexer indexer, int sizeLimit, boolean readOnly) throws IOException {
-        var buffer = io.masterkun.stateeasy.indexlogging.impl.Utils.createExistence(file, sizeLimit, readOnly);
+        var buffer = Utils.createExistence(file, sizeLimit, readOnly);
         int id;
         int off;
         if (indexer.isEmpty()) {
@@ -63,7 +58,7 @@ public final class MappedByteBufferLogReader implements io.masterkun.stateeasy.i
                 break;
             }
             if (indexer.endId() < id) {
-                indexer.update(id, off);
+                indexer.append(id, off);
             }
             id++;
             off += HEAD_LEN + len;
@@ -75,16 +70,16 @@ public final class MappedByteBufferLogReader implements io.masterkun.stateeasy.i
 
     private static int getLenAndCheckCrc(int id, int offset, MappedByteBuffer buffer) throws CrcCheckException {
         int len = buffer.getInt(offset + 4);
-        if (io.masterkun.stateeasy.indexlogging.impl.Utils.crc(id, len) != buffer.getInt(offset + 8 + len)) {
+        if (Utils.crc(id, len) != buffer.getInt(offset + 8 + len)) {
             throw new CrcCheckException(id, offset);
         }
         return len;
     }
 
-    private Serializer.DataIn dataInput(int offset, int len, io.masterkun.stateeasy.indexlogging.impl.ByteBufferDataInputStream reuse) {
+    private Serializer.DataIn dataInput(int offset, int len, ByteBufferDataInputStream reuse) {
         MappedByteBuffer slice = buffer.slice(offset + 8, len);
         if (reuse == null) {
-            return new io.masterkun.stateeasy.indexlogging.impl.ByteBufferDataInputStream(slice);
+            return new ByteBufferDataInputStream(slice);
         } else {
             reuse.setBuffer(slice);
             return reuse;
@@ -132,10 +127,10 @@ public final class MappedByteBufferLogReader implements io.masterkun.stateeasy.i
     }
 
     @Override
-    public <T> io.masterkun.stateeasy.indexlogging.impl.LogSegmentIterator<T> get(int offsetAfter, int id, int limit, Serializer<T> serializer) {
+    public <T> LogSegmentIterator<T> get(int offsetAfter, int id, int limit, Serializer<T> serializer) {
         var offsetAfter0 = getOffset(offsetAfter, id);
         if (offsetAfter0 == EMPTY) {
-            return io.masterkun.stateeasy.indexlogging.impl.LogSegmentIterator.empty(id, offsetAfter0);
+            return LogSegmentIterator.empty(id, offsetAfter0);
         }
         return new DataIterator<>(serializer, limit, offsetAfter0, id);
     }
@@ -153,7 +148,7 @@ public final class MappedByteBufferLogReader implements io.masterkun.stateeasy.i
     }
 
     private class DataIterator<T> implements LogSegmentIterator<T> {
-        private final io.masterkun.stateeasy.indexlogging.impl.ByteBufferDataInputStream reuse = new ByteBufferDataInputStream(null);
+        private final ByteBufferDataInputStream reuse = new ByteBufferDataInputStream(null);
         private final Serializer<T> serializer;
         private final int limitId;
         private final int readablePos = readable;

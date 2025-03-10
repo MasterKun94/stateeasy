@@ -1,12 +1,6 @@
 package io.masterkun.stateeasy.indexlogging.impl;
 
 import io.masterkun.stateeasy.indexlogging.Serializer;
-import io.masterkun.stateeasy.indexlogging.impl.ByteBufferDataOutputStream;
-import io.masterkun.stateeasy.indexlogging.impl.LogReader;
-import io.masterkun.stateeasy.indexlogging.impl.LogSegmentIterator;
-import io.masterkun.stateeasy.indexlogging.impl.LogSegmentRecord;
-import io.masterkun.stateeasy.indexlogging.impl.MappedByteBufferLogReader;
-import io.masterkun.stateeasy.indexlogging.impl.Utils;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -38,18 +32,18 @@ public class MappedByteBufferLogReaderTest {
 
     @Test
     public void test() throws IOException {
-        io.masterkun.stateeasy.indexlogging.impl.MappedByteBufferLogReader reader = MappedByteBufferLogReader.create(testFile, 1024 * 1024);
+        MappedByteBufferLogReader reader = MappedByteBufferLogReader.create(testFile, 1024 * 1024);
         MappedByteBuffer bufferForWrite = reader.getBufferForWrite();
         var out = new ByteBufferDataOutputStream(bufferForWrite);
         out.writeInt(5);
         out.writeInt(4);
         out.write(new byte[]{1, 2, 3, 4});
-        out.writeInt(io.masterkun.stateeasy.indexlogging.impl.Utils.crc(5, 4));
+        out.writeInt(Utils.crc(5, 4));
 
         out.writeInt(6);
         out.writeInt(5);
         out.write(new byte[]{2, 3, 4, 5, 6});
-        out.writeInt(io.masterkun.stateeasy.indexlogging.impl.Utils.crc(6, 5));
+        out.writeInt(Utils.crc(6, 5));
 
         out.writeInt(7);
         out.writeInt(3);
@@ -97,7 +91,7 @@ public class MappedByteBufferLogReaderTest {
         test(reader, 33 + 15, 8, new TestDrainer(), 10);
     }
 
-    private void test(io.masterkun.stateeasy.indexlogging.impl.LogReader reader, int offset, int id, TestDrainer drainer, int limit) throws IOException {
+    private void test(LogReader reader, int offset, int id, TestDrainer drainer, int limit) throws IOException {
         LogSegmentIterator<byte[]> iter = reader.get(offset, id, limit, new Serializer<>() {
             @Override
             public void serialize(byte[] obj, DataOut out) {

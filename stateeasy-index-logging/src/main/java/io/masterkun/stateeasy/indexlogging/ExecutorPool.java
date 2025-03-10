@@ -1,10 +1,10 @@
 package io.masterkun.stateeasy.indexlogging;
 
+import io.masterkun.stateeasy.concurrent.EventExecutor;
 import io.masterkun.stateeasy.indexlogging.executor.EventExecutorFactory;
 import io.micrometer.core.instrument.ImmutableTag;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
-import io.micrometer.core.instrument.binder.jvm.ExecutorServiceMetrics;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,10 +26,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+
 /**
- * A pool of {@link ScheduledExecutorService} instances, each associated with a specific file store.
- * This class ensures that a fixed number of single-threaded executors are available for each file store,
- * and provides methods to get or create these executors. It also supports registering metrics for monitoring.
+ * A pool of {@link EventExecutor} instances, each associated with a specific file store. The pool is designed to
+ * manage and provide executors for different file stores, ensuring that the number of threads per disk does not
+ * exceed a specified limit.
+ *
+ * <p>The class implements the {@link HasMetrics} interface, allowing it to register metrics for monitoring purposes.
  */
 public class ExecutorPool implements HasMetrics {
     private static final Logger LOG = LoggerFactory.getLogger(ExecutorPool.class);
@@ -41,11 +44,21 @@ public class ExecutorPool implements HasMetrics {
     private MetricsWrapper wrapper;
     private volatile CompletableFuture<Void> shutdownFuture;
 
+    /**
+     *
+     */
     public ExecutorPool(int threadNumPerDisk,
                         @Nullable ThreadFactory threadFactory) {
         this(threadNumPerDisk, threadFactory, EventExecutorFactory.DEFAULT);
     }
 
+    /**
+     * Constructs a new ExecutorPool with the specified number of threads per disk, thread factory, and executor factory.
+     *
+     * @param threadNumPerDisk the number of threads to allocate per disk
+     * @param threadFactory    the factory to use for creating new threads, or null to use the default factory
+     * @param executorFactory  the factory to use for creating new event executors
+     */
     public ExecutorPool(int threadNumPerDisk,
                         @Nullable ThreadFactory threadFactory,
                         EventExecutorFactory executorFactory) {
@@ -55,18 +68,18 @@ public class ExecutorPool implements HasMetrics {
     }
 
     /**
-     * Retrieves or creates a {@link ScheduledExecutorService} for the given directory.
+     * Retrieves or creates an {@link EventExecutor} for the specified directory.
      * <p>
      * This method ensures that there is a dedicated executor service for the file store
      * associated with the provided directory. If the maximum number of threads per disk
      * has not been reached, a new executor service is created and added to the pool.
      * Otherwise, an existing executor from the pool is returned.
      *
-     * @param dir the directory for which to get or create the executor service
-     * @return a {@link ScheduledExecutorService} for the specified directory
-     * @throws RuntimeException if an I/O error occurs while retrieving the file store
+     * @param dir the directory for which to retrieve or create an {@code EventExecutor}
+     * @return the existing or newly created {@code EventExecutor} associated with the file store of the given directory
+     * @throws RuntimeException if the executor pool has already been shut down, or if there is an issue accessing the file store
      */
-    public ScheduledExecutorService getOrCreate(File dir) {
+    public EventExecutor getOrCreate(File dir) {
         if (shutdownFuture != null) {
             throw new RuntimeException("already shutdown");
         }
@@ -103,8 +116,10 @@ public class ExecutorPool implements HasMetrics {
             }
             tagList.add(new ImmutableTag("file_store", fileStore));
             tagList.add(new ImmutableTag("executor_id", Integer.toString(id)));
-            return ExecutorServiceMetrics.monitor(registry, executor,
-                    "log_system_executor", metricPrefix, tagList);
+            // TODO add metrics
+//            return ExecutorServiceMetrics.monitor(registry, (ScheduledExecutorService) executor,
+//                    "log_system_executor", metricPrefix, tagList);
+            return executor;
         };
         for (ExecutorHolder holder : executors.values()) {
             holder.registerMetrics();
@@ -130,12 +145,12 @@ public class ExecutorPool implements HasMetrics {
     }
 
     private interface MetricsWrapper {
-        ScheduledExecutorService wrap(ScheduledExecutorService executor, String fileStore, int id);
+        EventExecutor wrap(EventExecutor executor, String fileStore, int id);
     }
 
     private final class ExecutorHolder {
         private final String fileStoreName;
-        private final List<ScheduledExecutorService> list = new ArrayList<>();
+        private final List<EventExecutor> list = new ArrayList<>();
         private final AtomicInteger adder = new AtomicInteger();
         private final AtomicBoolean metricsRegistered = new AtomicBoolean();
         private volatile boolean shutdown;
@@ -144,13 +159,13 @@ public class ExecutorPool implements HasMetrics {
             this.fileStoreName = fileStoreName;
         }
 
-        public ScheduledExecutorService nextExecutor() {
+        public EventExecutor nextExecutor() {
             synchronized (this) {
                 if (shutdown) {
                     throw new RuntimeException("already shutdown");
                 }
                 if (list.size() < threadNumPerDisk) {
-                    ScheduledExecutorService executor = executorFactory.createEventExecutor(threadFactory);
+                    EventExecutor executor = executorFactory.createEventExecutor(threadFactory);
                     if (wrapper != null) {
                         executor = wrapper.wrap(executor, fileStoreName, list.size());
                     }

@@ -5,6 +5,19 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Collection;
 import java.util.function.Function;
 
+/**
+ * A no-operation implementation of the {@link EventPromise} interface. This class is designed to serve as a placeholder
+ * or stub for an event promise, where all operations are unsupported and throw an {@link UnsupportedOperationException}.
+ * The primary use case for this class is in scenarios where a non-null {@code EventPromise} is required but no actual
+ * asynchronous operation is intended to be performed.
+ *
+ * <p>Methods that would typically indicate the state of the promise, such as {@link #isDone()}, {@link #isCancelled()},
+ * {@link #isSuccess()}, and {@link #isFailure()}, always return {@code false}. Methods that would normally trigger
+ * or transform the promise, such as {@link #getResult()}, {@link #map(Function, EventExecutor)}, and
+ * {@link #transform(Function, EventExecutor)}, throw an {@link UnsupportedOperationException}.
+ *
+ * @param <T> the type of the result that the promise would theoretically provide
+ */
 public class NoopEventPromise<T> implements EventPromise<T> {
     private final EventExecutor executor;
 

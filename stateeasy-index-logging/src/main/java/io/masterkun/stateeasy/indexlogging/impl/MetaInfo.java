@@ -1,7 +1,5 @@
 package io.masterkun.stateeasy.indexlogging.impl;
 
-import io.masterkun.stateeasy.indexlogging.impl.MetaKeys;
-
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
@@ -36,10 +34,10 @@ public class MetaInfo {
             throw new FileAlreadyExistsException(file.toString());
         }
         Properties prop = new Properties();
-        prop.put(io.masterkun.stateeasy.indexlogging.impl.MetaKeys.INIT_ID.getKey(), String.valueOf(initId));
-        prop.put(io.masterkun.stateeasy.indexlogging.impl.MetaKeys.INIT_OFF.getKey(), String.valueOf(initOff));
-        prop.put(io.masterkun.stateeasy.indexlogging.impl.MetaKeys.IDX_LMT.getKey(), String.valueOf(idxLimit));
-        prop.put(io.masterkun.stateeasy.indexlogging.impl.MetaKeys.LOG_LEN.getKey(), String.valueOf(logLimit));
+        prop.put(MetaKeys.INIT_ID.getKey(), String.valueOf(initId));
+        prop.put(MetaKeys.INIT_OFF.getKey(), String.valueOf(initOff));
+        prop.put(MetaKeys.IDX_LMT.getKey(), String.valueOf(idxLimit));
+        prop.put(MetaKeys.LOG_LEN.getKey(), String.valueOf(logLimit));
         try (var out = new FileOutputStream(file, false)) {
             prop.store(out, null);
             out.flush();
@@ -56,20 +54,20 @@ public class MetaInfo {
         try (var in = new FileInputStream(file.toString())) {
             prop.load(in);
         }
-        long initId = Long.parseLong(getRequired(prop, io.masterkun.stateeasy.indexlogging.impl.MetaKeys.INIT_ID));
-        long initOff = Long.parseLong(getRequired(prop, io.masterkun.stateeasy.indexlogging.impl.MetaKeys.INIT_OFF));
-        int idxLimit = Integer.parseInt(getRequired(prop, io.masterkun.stateeasy.indexlogging.impl.MetaKeys.IDX_LMT));
-        int logLimit = Integer.parseInt(getRequired(prop, io.masterkun.stateeasy.indexlogging.impl.MetaKeys.LOG_LEN));
-        boolean readOnly = Boolean.parseBoolean(get(prop, io.masterkun.stateeasy.indexlogging.impl.MetaKeys.READ_ONLY));
+        long initId = Long.parseLong(getRequired(prop, MetaKeys.INIT_ID));
+        long initOff = Long.parseLong(getRequired(prop, MetaKeys.INIT_OFF));
+        int idxLimit = Integer.parseInt(getRequired(prop, MetaKeys.IDX_LMT));
+        int logLimit = Integer.parseInt(getRequired(prop, MetaKeys.LOG_LEN));
+        boolean readOnly = Boolean.parseBoolean(get(prop, MetaKeys.READ_ONLY));
         return new MetaInfo(file, initId, initOff, idxLimit, logLimit, readOnly);
     }
 
-    private static String getRequired(Properties prop, io.masterkun.stateeasy.indexlogging.impl.MetaKeys key) {
+    private static String getRequired(Properties prop, MetaKeys key) {
         return Objects.requireNonNull(get(prop, key),
                 "MetaValue[" + key.getKey() + "]");
     }
 
-    private static String get(Properties prop, io.masterkun.stateeasy.indexlogging.impl.MetaKeys key) {
+    private static String get(Properties prop, MetaKeys key) {
         return prop.getProperty(key.getKey());
     }
 
