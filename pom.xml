@@ -10,7 +10,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>stateeasy-concurrent</module>
-        <module>stateeasy-core</module>
+        <module>stateeasy-persistence</module>
         <module>stateeasy-index-logging</module>
     </modules>
 
@@ -34,7 +34,7 @@
             </dependency>
             <dependency>
                 <groupId>io.masterkun.commons</groupId>
-                <artifactId>stateeasy-core</artifactId>
+                <artifactId>stateeasy-persistence</artifactId>
                 <version>0.1.0-SNAPSHOT</version>
             </dependency>
 
