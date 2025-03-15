@@ -1,19 +1,23 @@
 package io.masterkun.stateeasy.core.impl;
 
-import io.masterkun.stateeasy.concurrent.EventExecutor;
 import io.masterkun.stateeasy.concurrent.EventStageListener;
+import io.masterkun.stateeasy.core.EventSourceStateDef;
 import io.masterkun.stateeasy.core.EventStore;
 import io.masterkun.stateeasy.indexlogging.EventLogger;
 import io.masterkun.stateeasy.indexlogging.IdAndOffset;
 import io.masterkun.stateeasy.indexlogging.LogObserver;
 
-public class LocalLogEventStore<EVENT> implements EventStore<EVENT> {
-    private final EventExecutor executor;
+public class LocalFileEventStore<EVENT> implements EventStore<EVENT> {
     private final EventLogger<EVENT> logger;
 
-    public LocalLogEventStore(EventExecutor executor, EventLogger<EVENT> logger) {
-        this.executor = executor;
+    public LocalFileEventStore(EventLogger<EVENT> logger) {
         this.logger = logger;
+    }
+
+    @Override
+    public void initialize(EventSourceStateDef<?, EVENT> stateDef,
+                           EventStageListener<Void> listener) {
+        // TODO
     }
 
     @Override
@@ -37,6 +41,11 @@ public class LocalLogEventStore<EVENT> implements EventStore<EVENT> {
     }
 
     @Override
+    public void expire(long expireAtEventId, EventStageListener<Boolean> listener) {
+        logger.expire(expireAtEventId);
+    }
+
+    @Override
     public void recover(long recoverAtEventId, EventObserver<EVENT> observer) {
         logger.read(recoverAtEventId, 100, new LogObserver<>() {
             @Override
@@ -49,7 +58,7 @@ public class LocalLogEventStore<EVENT> implements EventStore<EVENT> {
                 if (recoverAtEventId == nextId) {
                     observer.onComplete();
                 } else {
-                    executor.execute(() -> recover(nextId, observer));
+                    logger.executor().execute(() -> recover(nextId, observer));
                 }
             }
 

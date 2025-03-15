@@ -5,8 +5,6 @@ import io.masterkun.stateeasy.concurrent.EventExecutor;
 import io.masterkun.stateeasy.concurrent.EventExecutorThreadFactory;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.concurrent.ThreadFactory;
-
 public class DefaultEventExecutorFactory implements EventExecutorFactory {
     @Override
     public EventExecutor createEventExecutor(@Nullable EventExecutorThreadFactory threadFactory) {

@@ -1,10 +1,10 @@
 package io.masterkun.stateeasy.indexlogging;
 
 import io.masterkun.stateeasy.concurrent.EventExecutor;
-import io.masterkun.stateeasy.concurrent.EventFuture;
 import io.masterkun.stateeasy.concurrent.EventPromise;
 import io.masterkun.stateeasy.concurrent.EventStage;
 import io.masterkun.stateeasy.concurrent.EventStageListener;
+import io.masterkun.stateeasy.concurrent.EventStageListenerAdaptor;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.concurrent.CompletableFuture;
@@ -133,17 +133,7 @@ public interface EventLogger<T> {
      */
     default CompletableFuture<IdAndOffset> write(T obj, boolean flush, boolean immediateCallback) {
         CompletableFuture<IdAndOffset> future = new CompletableFuture<>();
-        write(obj, flush, immediateCallback, new EventStageListener<IdAndOffset>() {
-            @Override
-            public void success(IdAndOffset value) {
-                future.complete(value);
-            }
-
-            @Override
-            public void failure(Throwable cause) {
-                future.completeExceptionally(cause);
-            }
-        });
+        write(obj, flush, immediateCallback, new EventStageListenerAdaptor<>(future));
         return future;
     }
 
@@ -187,24 +177,37 @@ public interface EventLogger<T> {
         return promise;
     }
 
+    /**
+     * Asynchronously flushes the log to ensure all pending writes are persisted. This method
+     * returns a CompletableFuture that will be completed when the flush operation is complete.
+     *
+     * @return a CompletableFuture that will be completed with null upon successful completion of
+     * the flush, or exceptionally if an error occurs during the flush operation.
+     */
     default CompletableFuture<Void> flush() {
         CompletableFuture<Void> future = new CompletableFuture<>();
-        flush(new EventStageListener<>() {
-            @Override
-            public void success(Void value) {
-                future.complete(null);
-            }
-
-            @Override
-            public void failure(Throwable cause) {
-                future.completeExceptionally(cause);
-            }
-        });
+        flush(new EventStageListenerAdaptor<>(future));
         return future;
     }
 
+    /**
+     * Asynchronously flushes the log to ensure all pending writes are persisted. This method will
+     * notify the provided listener upon completion or error of the flush operation.
+     *
+     * @param listener the listener to be notified with the result of the flush operation, or any
+     *                 errors
+     */
     void flush(EventStageListener<Void> listener);
 
+    /**
+     * Asynchronously flushes the log to ensure all pending writes are persisted. If the provided
+     * promise is null, a new promise will be created using the executor.
+     *
+     * @param promise the optional promise to be completed with the result of the flush operation;
+     *                if null, a new promise is created
+     * @return the promise that will be completed with null upon successful completion of the flush,
+     * or exceptionally if an error occurs during the flush operation
+     */
     default EventStage<Void> flush(EventPromise<Void> promise) {
         if (promise == null) {
             promise = EventPromise.newPromise(executor());
@@ -250,12 +253,63 @@ public interface EventLogger<T> {
         read(idAndOffset.offset(), idAndOffset.id(), limit, observer);
     }
 
+
     /**
-     * Cleans up all log segments where the endId is less than the specified ID.
+     * Asynchronously expires entries with an ID less than the specified value, invoking the
+     * provided listener upon completion.
+     * <p>
+     * Note: This method does not guarantee that all entries with an ID less than the specified
+     * value will be expired. If the data is in the current log segment being written, it will not
+     * be expired.
      *
-     * @param idBefore the ID before which all log segments will be cleaned up
+     * @param idBefore the ID threshold; entries with an ID less than this value will be expired,
+     * @return a CompletableFuture that will be completed with a Boolean result indicating whether
+     * any data was expired (true if data was expired, false otherwise)
      */
-    void expire(long idBefore);
+    default CompletableFuture<Boolean> expire(long idBefore) {
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        expire(idBefore, new EventStageListenerAdaptor<>(future));
+        return future;
+    }
+
+
+    /**
+     * Expires entries with an ID less than the specified value, invoking the provided listener upon
+     * completion.
+     * <p>
+     * Note: This method does not guarantee that all entries with an ID less than the specified
+     * value will be expired. If the data is in the current log segment being written, it will not
+     * be expired.
+     *
+     * @param idBefore the ID threshold; entries with an ID less than this value will be expired,
+     *                 except those in the current log segment being written
+     * @param listener the listener to be notified with a Boolean result indicating whether any data
+     *                 was expired (true if data was expired, false otherwise)
+     */
+    void expire(long idBefore, EventStageListener<Boolean> listener);
+
+    /**
+     * Asynchronously expires entries with an ID less than the specified value, invoking the
+     * provided promise upon completion.
+     * <p>
+     * Note: This method does not guarantee that all entries with an ID less than the specified
+     * value will be expired. If the data is in the current log segment being written, it will not
+     * be expired.
+     *
+     * @param idBefore the ID threshold; entries with an ID less than this value will be expired,
+     *                 except those in the current log segment being written
+     * @param promise  the optional promise to be completed with a Boolean result indicating whether
+     *                 any data was expired (true if data was expired, false otherwise)
+     * @return the promise that will be completed with a Boolean result indicating whether any data
+     * was expired (true if data was expired, false otherwise)
+     */
+    default EventStage<Boolean> expire(long idBefore, EventPromise<Boolean> promise) {
+        if (promise == null) {
+            promise = EventPromise.newPromise(executor());
+        }
+        expire(idBefore, (EventStageListener<Boolean>) promise);
+        return promise;
+    }
 
     /**
      * Returns the {@link EventExecutor} responsible for handling tasks within this

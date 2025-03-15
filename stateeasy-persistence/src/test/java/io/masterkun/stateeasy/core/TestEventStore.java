@@ -25,6 +25,17 @@ public class TestEventStore<EVENT> implements EventStore<EVENT> {
     }
 
     @Override
+    public void initialize(EventSourceStateDef<?, EVENT> stateDef,
+                           EventStageListener<Void> listener) {
+        var future = memory.initialize(stateDef, executor.newPromise());
+        if (internal != null) {
+            future = future
+                    .flatmap(v -> internal.initialize(stateDef, executor.newPromise()));
+        }
+        future.addListener(listener);
+    }
+
+    @Override
     public void append(EVENT event, EventStageListener<EventHolder<EVENT>> listener) {
         var future = memory.append(event, executor.newPromise());
         if (internal != null) {
@@ -36,6 +47,16 @@ public class TestEventStore<EVENT> implements EventStore<EVENT> {
                                 }
                                 return h2;
                             }));
+        }
+        future.addListener(listener);
+    }
+
+    @Override
+    public void expire(long expireAtEventId, EventStageListener<Boolean> listener) {
+        var future = memory.expire(expireAtEventId, executor.newPromise());
+        if (internal != null) {
+            future = future
+                    .flatmap(b -> internal.expire(expireAtEventId, executor.newPromise()));
         }
         future.addListener(listener);
     }

@@ -134,8 +134,13 @@ public class IncrementalSnapshotStateManagerTest {
         }
 
         @Override
+        public String name() {
+            return "test";
+        }
+
+        @Override
         public SnapshotConfig snapshotConfig() {
-            return new SnapshotConfig(Duration.ofMillis(100));
+            return new SnapshotConfig(Duration.ofMillis(100), true);
         }
 
         @Override

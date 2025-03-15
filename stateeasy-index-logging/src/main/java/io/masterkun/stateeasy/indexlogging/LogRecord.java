@@ -10,8 +10,7 @@ import java.util.Objects;
  * the log entry.
  *
  * <p>The {@code LogRecord} class is designed to be immutable, with the ID and offset being
- * computed
- * based on initial values and the values from the encapsulated {@link LogSegmentRecord}.
+ * computed based on initial values and the values from the encapsulated {@link LogSegmentRecord}.
  *
  * @param <T> the type of the value stored in the log record
  */

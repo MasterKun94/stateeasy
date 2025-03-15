@@ -22,6 +22,10 @@ public class MemoryStateStore<STATE> implements StateStore<STATE> {
 
     @Override
     public void initialize(StateDef<STATE, ?> stateDef, EventStageListener<Void> listener) {
+        if (!executor.inExecutor()) {
+            executor.execute(() -> initialize(stateDef, listener));
+            return;
+        }
         try {
             if (initialized) {
                 throw new RuntimeException("Already initialized");
@@ -39,6 +43,10 @@ public class MemoryStateStore<STATE> implements StateStore<STATE> {
 
     @Override
     public void write(Snapshot<STATE> snapshot, EventStageListener<Void> listener) {
+        if (!executor.inExecutor()) {
+            executor.execute(() -> write(snapshot, listener));
+            return;
+        }
         try {
             if (incremental && this.snapshot != null) {
                 this.snapshot = new Snapshot<>(
@@ -57,7 +65,20 @@ public class MemoryStateStore<STATE> implements StateStore<STATE> {
 
     @Override
     public void read(EventStageListener<Snapshot<STATE>> listener) {
+        if (!executor.inExecutor()) {
+            executor.execute(() -> read(listener));
+            return;
+        }
         listener.success(snapshot);
+    }
+
+    @Override
+    public void expire(long expireBeforeSnapshotId, EventStageListener<Boolean> listener) {
+        if (!executor.inExecutor()) {
+            executor.execute(() -> expire(expireBeforeSnapshotId, listener));
+            return;
+        }
+        listener.success(false);
     }
 
     @Override

@@ -12,6 +12,8 @@ public interface StateStore<STATE> extends Closeable {
 
     void read(EventStageListener<Snapshot<STATE>> listener);
 
+    void expire(long expireBeforeSnapshotId, EventStageListener<Boolean> listener);
+
     @Override
     void close();
 }

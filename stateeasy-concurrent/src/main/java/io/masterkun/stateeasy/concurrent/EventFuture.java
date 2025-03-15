@@ -14,6 +14,33 @@ import java.util.function.Function;
  * @param <T> the type of the result produced by the asynchronous computation
  */
 public non-sealed interface EventFuture<T> extends EventStage<T>, Future<T> {
+
+    /**
+     * Creates a new {@code EventFuture} that is immediately completed with the given value.
+     *
+     * @param <T>      the type of the value that this future represents
+     * @param value    the value with which the future is to be completed
+     * @param executor the event executor to be used for running the completion
+     * @return a new {@code EventFuture} that is already completed with the provided value
+     */
+    static <T> EventFuture<T> succeed(T value, EventExecutor executor) {
+        return new SucceedEventFuture<>(value, executor);
+    }
+
+    /**
+     * Creates a new {@code EventFuture} that is immediately completed exceptionally with the given
+     * cause.
+     *
+     * @param <T>      the type of the value that this future represents
+     * @param cause    the throwable representing the failure
+     * @param executor the event executor to be used for running the completion
+     * @return a new {@code EventFuture} that is already completed exceptionally with the provided
+     * cause
+     */
+    static <T> EventFuture<T> failed(Throwable cause, EventExecutor executor) {
+        return new FailedEventFuture<>(cause, executor);
+    }
+
     /**
      * Schedules the provided callable to be executed asynchronously using the specified event
      * executor.

@@ -19,9 +19,9 @@ public abstract class AbstractStateManager<STATE, EVENT, STATE_DEF extends State
 
     protected final STATE_DEF stateDef;
     private final EventExecutor executor;
-    private final EventStoreAdaptor<EVENT> eventStore;
-    private final StateStoreAdaptor<STATE> stateStore;
     protected STATE state;
+    private EventStoreAdaptor<EVENT> eventStore;
+    private StateStoreAdaptor<STATE> stateStore;
     private ScheduledFuture<?> snapshotTask;
     private long snapshotId;
     private long eventId;
@@ -31,12 +31,7 @@ public abstract class AbstractStateManager<STATE, EVENT, STATE_DEF extends State
                          STATE_DEF stateDef) {
         this.executor = singleThreadExecutor;
         this.stateDef = stateDef;
-        this.stateStore = new StateStoreAdaptor<>(stateDef.stateStore(executor));
-        @SuppressWarnings("unchecked")
-        EventStore<EVENT> eventStore = stateDef instanceof EventSourceStateDef ?
-                ((EventSourceStateDef<?, EVENT>) stateDef).eventStore(executor) :
-                new NoopEventStore<>();
-        this.eventStore = new EventStoreAdaptor<>(eventStore);
+
     }
 
     @Override
@@ -44,7 +39,19 @@ public abstract class AbstractStateManager<STATE, EVENT, STATE_DEF extends State
         long interval = stateDef.snapshotConfig().snapshotInterval().toMillis();
         this.snapshotTask = executor.scheduleWithFixedDelay(this::snapshot,
                 interval, interval, TimeUnit.MILLISECONDS);
-        return stateStore.initialize(stateDef, executor.newPromise())
+        this.stateStore = new StateStoreAdaptor<>(stateDef.stateStore(executor));
+        EventStage<Void> initFuture;
+        if (stateDef instanceof EventSourceStateDef) {
+            @SuppressWarnings("unchecked")
+            var eventSourceStateDef = (EventSourceStateDef<?, EVENT>) stateDef;
+            this.eventStore = new EventStoreAdaptor<>(eventSourceStateDef.eventStore(executor));
+            initFuture = this.eventStore.initialize(eventSourceStateDef, executor.newPromise());
+        } else {
+            this.eventStore = new EventStoreAdaptor<>(new NoopEventStore<>());
+            initFuture = EventStage.succeed(null, executor);
+        }
+
+        return initFuture.flatmap(v -> stateStore.initialize(stateDef, executor.newPromise()))
                 .flatmap(v -> stateStore.read(executor.newPromise()))
                 .flatmap(read -> {
                     if (read == null) {
@@ -93,8 +100,15 @@ public abstract class AbstractStateManager<STATE, EVENT, STATE_DEF extends State
             return;
         }
         try {
-            stateStore.write(new Snapshot<>(snapshotId, state, eventId, Map.of()),
-                    new EventStageListener<>() {
+            Snapshot<STATE> snapshot = new Snapshot<>(snapshotId, state, eventId, Map.of());
+            EventStage<Void> stage = stateStore.write(snapshot, executor.newPromise());
+            if (stateDef.snapshotConfig().autoExpire()) {
+                stage = stage
+                        .flatmap(v -> stateStore.expire(snapshotId, executor.newPromise()))
+                        .flatmap(b -> eventStore.expire(eventId, executor.newPromise()))
+                        .map(b -> null);
+            }
+            stage.addListener(new EventStageListener<>() {
                 @Override
                 public void success(Void value) {
 

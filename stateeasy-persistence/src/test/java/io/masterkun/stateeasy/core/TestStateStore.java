@@ -66,6 +66,16 @@ public class TestStateStore<STATE> implements StateStore<STATE> {
     }
 
     @Override
+    public void expire(long expireBeforeSnapshotId, EventStageListener<Boolean> listener) {
+        var future = memory.expire(expireBeforeSnapshotId, executor.newPromise());
+        if (internal != null) {
+            future = future
+                    .flatmap(b -> internal.expire(expireBeforeSnapshotId, executor.newPromise()));
+        }
+        future.addListener(listener);
+    }
+
+    @Override
     public void close() {
         memory.close();
         if (internal != null) {

@@ -2,7 +2,6 @@ package io.masterkun.stateeasy.indexlogging;
 
 import io.masterkun.stateeasy.concurrent.EventExecutor;
 import io.masterkun.stateeasy.concurrent.EventExecutorThread;
-import io.masterkun.stateeasy.concurrent.EventExecutorThreadFactory;
 import io.masterkun.stateeasy.indexlogging.impl.EventLoggerImpl;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.jetbrains.annotations.Nullable;

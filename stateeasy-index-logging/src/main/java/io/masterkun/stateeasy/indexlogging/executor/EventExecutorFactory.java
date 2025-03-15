@@ -7,7 +7,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Comparator;
 import java.util.List;
 import java.util.ServiceLoader;
-import java.util.concurrent.ThreadFactory;
 
 public interface EventExecutorFactory {
 

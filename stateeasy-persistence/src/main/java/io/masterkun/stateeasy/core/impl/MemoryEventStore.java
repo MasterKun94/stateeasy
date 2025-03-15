@@ -2,6 +2,7 @@ package io.masterkun.stateeasy.core.impl;
 
 import io.masterkun.stateeasy.concurrent.EventExecutor;
 import io.masterkun.stateeasy.concurrent.EventStageListener;
+import io.masterkun.stateeasy.core.EventSourceStateDef;
 import io.masterkun.stateeasy.core.EventStore;
 
 public class MemoryEventStore<EVENT> implements EventStore<EVENT> {
@@ -12,6 +13,12 @@ public class MemoryEventStore<EVENT> implements EventStore<EVENT> {
     public MemoryEventStore(EventExecutor executor, int capacity) {
         this.executor = executor;
         elems = new Object[capacity];
+    }
+
+    @Override
+    public void initialize(EventSourceStateDef<?, EVENT> stateDef,
+                           EventStageListener<Void> listener) {
+        listener.success(null);
     }
 
     @Override
@@ -32,6 +39,11 @@ public class MemoryEventStore<EVENT> implements EventStore<EVENT> {
         int id = (int) (writerId % elems.length);
         elems[id] = event;
         listener.success(new EventHolder<>(writerId++, event));
+    }
+
+    @Override
+    public void expire(long expireAtEventId, EventStageListener<Boolean> listener) {
+        listener.success(true);
     }
 
     @Override

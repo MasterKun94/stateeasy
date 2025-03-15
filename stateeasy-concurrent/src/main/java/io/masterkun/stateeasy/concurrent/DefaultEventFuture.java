@@ -53,6 +53,16 @@ class DefaultEventFuture<T> extends DefaultEventPromise<T> implements EventFutur
     }
 
     @Override
+    protected EventStage<T> toCompletedStage(EventExecutor executor) {
+        assert getResult() != null;
+        return switch (getResult()) {
+            case Success<T>(T value) -> new SucceedEventFuture<>(value, executor);
+            case Failure<T>(Throwable e) -> new FailedEventFuture<>(e, executor);
+            case null -> throw new RuntimeException("should never happen");
+        };
+    }
+
+    @Override
     public <P> EventFuture<P> map(Function<T, P> func) {
         return (EventFuture<P>) super.map(func);
     }

@@ -378,18 +378,25 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics, Clo
     }
 
     @Override
-    public void expire(long idBefore) {
+    public void expire(long idBefore, EventStageListener<Boolean> listener) {
         executor.execute(() -> {
-            Iterator<LogSegment<T>> iter = segments.descendingIterator();
-            while (iter.hasNext()) {
-                LogSegment<T> segment = iter.next();
-                if (segment == currentSegment || segment.endId() >= idBefore) {
-                    break;
+            try {
+                Iterator<LogSegment<T>> iter = segments.descendingIterator();
+                boolean removed = false;
+                while (iter.hasNext()) {
+                    LogSegment<T> segment = iter.next();
+                    if (segment == currentSegment || segment.endId() >= idBefore) {
+                        break;
+                    }
+                    LOG.info("IndexLogger[{}] expire Segment[{}->{}]", name, segment.startId(),
+                            segment.endId());
+                    iter.remove();
+                    segment.delete();
+                    removed = true;
                 }
-                LOG.info("IndexLogger[{}] expire Segment[{}->{}]", name, segment.startId(),
-                        segment.endId());
-                iter.remove();
-                segment.delete();
+                listener.success(removed);
+            } catch (Throwable e) {
+                listener.failure(e);
             }
         });
     }

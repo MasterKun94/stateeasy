@@ -20,7 +20,35 @@ import java.util.function.Function;
  *
  * @param <T> the type of the result of the asynchronous computation
  */
-public sealed interface EventStage<T> permits EventPromise, EventFuture {
+public sealed interface EventStage<T> permits EventPromise, EventFuture, SucceedEventStage,
+        FailedEventStage {
+
+    /**
+     * Creates a new {@code EventStage} that is immediately completed with the given value.
+     *
+     * @param <T>      the type of the value
+     * @param value    the value to be used for completing the stage
+     * @param executor the executor to be used for running the completion
+     * @return a new {@code EventStage} that is already completed with the provided value
+     */
+    static <T> EventStage<T> succeed(T value, EventExecutor executor) {
+        return new SucceedEventStage<>(value, executor);
+    }
+
+    /**
+     * Creates a new {@code EventStage} that represents a failure.
+     *
+     * @param <T>      the type of the result that this stage would have represented, had it not
+     *                 failed
+     * @param cause    the cause of the failure
+     * @param executor the executor to use for executing any listeners attached to the returned
+     *                 stage
+     * @return a new {@code EventStage} representing the given failure
+     */
+    static <T> EventStage<T> failed(Throwable cause, EventExecutor executor) {
+        return new FailedEventStage<>(cause, executor);
+    }
+
     /**
      * Asynchronously executes a given {@code Callable} and returns an {@code EventStage} that will
      * be completed with the result of the callable.
@@ -267,6 +295,13 @@ public sealed interface EventStage<T> permits EventPromise, EventFuture {
      * @return an {@code EventFuture<T>} representing the future result of the event
      */
     default EventFuture<T> toFuture() {
+        if (isDone()) {
+            return switch (getResult()) {
+                case Success<T>(T v) -> new SucceedEventFuture<>(v, executor());
+                case Failure<?>(Throwable e) -> new FailedEventFuture<>(e, executor());
+                case null -> throw new RuntimeException("should never happen");
+            };
+        }
         return new DefaultEventFuture<>(this);
     }
 }

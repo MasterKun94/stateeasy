@@ -147,30 +147,30 @@ public class MPMCRunner {
                     long id = idAndOffset.id();
                     io.masterkun.stateeasy.indexlogging.LogObserver<String> observer =
                             new LogObserver<>() {
-                        private long expectId = id;
+                                private long expectId = id;
 
-                        @Override
-                        public void onNext(long id, long offset, String value) {
-                            adder.add(1);
-                            if (expectId != id) {
-                                LOG.error("id check failed", new RuntimeException());
-                            }
-                            expectId++;
-                        }
+                                @Override
+                                public void onNext(long id, long offset, String value) {
+                                    adder.add(1);
+                                    if (expectId != id) {
+                                        LOG.error("id check failed", new RuntimeException());
+                                    }
+                                    expectId++;
+                                }
 
-                        @Override
-                        public void onComplete(long nextId, long nextOffset) {
-                            if (expectId != nextId) {
-                                LOG.error("id check failed", new RuntimeException());
-                            }
-                            future.complete(new io.masterkun.stateeasy.indexlogging.IdAndOffset(nextId, nextOffset));
-                        }
+                                @Override
+                                public void onComplete(long nextId, long nextOffset) {
+                                    if (expectId != nextId) {
+                                        LOG.error("id check failed", new RuntimeException());
+                                    }
+                                    future.complete(new io.masterkun.stateeasy.indexlogging.IdAndOffset(nextId, nextOffset));
+                                }
 
-                        @Override
-                        public void onError(Throwable e) {
-                            future.completeExceptionally(e);
-                        }
-                    };
+                                @Override
+                                public void onError(Throwable e) {
+                                    future.completeExceptionally(e);
+                                }
+                            };
                     logger.read(idAndOffset, 100, observer);
                     IdAndOffset joined = future.join();
                     if (joined.equals(idAndOffset)) {

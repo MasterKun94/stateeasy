@@ -16,8 +16,13 @@ public class SnapshotStateManagerTest {
         StateStoreAdaptor<TestState> stateStore = new StateStoreAdaptor<>(new TestStateStore<>());
         var stateDef = new SnapshotStateDef<TestState, TestEvent>() {
             @Override
+            public String name() {
+                return "test";
+            }
+
+            @Override
             public SnapshotConfig snapshotConfig() {
-                return new SnapshotConfig(Duration.ofMillis(100));
+                return new SnapshotConfig(Duration.ofMillis(100), true);
             }
 
             @Override

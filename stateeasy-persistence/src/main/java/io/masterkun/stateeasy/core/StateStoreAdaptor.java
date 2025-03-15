@@ -41,6 +41,16 @@ public class StateStoreAdaptor<STATE> implements StateStore<STATE> {
         delegate.read(listener);
     }
 
+    public EventStage<Boolean> expire(long expireBeforeSnapshotId, EventPromise<Boolean> promise) {
+        expire(expireBeforeSnapshotId, (EventStageListener<Boolean>) promise);
+        return promise;
+    }
+
+    @Override
+    public void expire(long expireBeforeSnapshotId, EventStageListener<Boolean> listener) {
+        delegate.expire(expireBeforeSnapshotId, listener);
+    }
+
     @Override
     public void close() {
         delegate.close();

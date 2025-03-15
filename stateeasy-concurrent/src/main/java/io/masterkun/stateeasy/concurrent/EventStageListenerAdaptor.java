@@ -1,31 +1,37 @@
 package io.masterkun.stateeasy.concurrent;
 
+import java.util.concurrent.CompletableFuture;
+
 /**
- * An abstract implementation of the {@code EventStageListener<T>} interface, designed to simplify
- * the process of handling both success and failure outcomes of an event stage. This adaptor
- * provides a single method, {@code complete(T, Throwable)}, which is called in both success and
- * failure scenarios, allowing for more concise and centralized error and success handling.
+ * An abstract implementation of the {@code EventStageListener} interface that uses a
+ * {@code CompletableFuture} to handle the success and failure of an event stage. This adaptor
+ * provides a convenient way to work with asynchronous operations by completing the future based on
+ * the outcome of the event stage.
  *
  * @param <T> the type of the value produced in case of success
  */
-public abstract class EventStageListenerAdaptor<T> implements EventStageListener<T> {
+public class EventStageListenerAdaptor<T> implements EventStageListener<T> {
+    private final CompletableFuture<T> future;
+
+    public EventStageListenerAdaptor(CompletableFuture<T> future) {
+        this.future = future;
+    }
+
+    public EventStageListenerAdaptor() {
+        this(new CompletableFuture<>());
+    }
+
     @Override
     public final void success(T value) {
-        complete(value, null);
+        future.complete(value);
     }
 
     @Override
     public final void failure(Throwable cause) {
-        complete(null, cause);
+        future.completeExceptionally(cause);
     }
 
-    /**
-     * Completes the event stage by handling both success and failure outcomes. This method is
-     * called with a value in case of success, and with a cause in case of failure.
-     *
-     * @param value the value produced in case of success, or null if the event stage failed
-     * @param cause the throwable representing the cause of the failure, or null if the event stage
-     *              succeeded
-     */
-    protected abstract void complete(T value, Throwable cause);
+    public CompletableFuture<T> getFuture() {
+        return future;
+    }
 }

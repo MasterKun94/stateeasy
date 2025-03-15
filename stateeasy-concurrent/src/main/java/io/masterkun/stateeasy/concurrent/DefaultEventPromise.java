@@ -19,7 +19,7 @@ public class DefaultEventPromise<T> implements EventPromise<T> {
     private static final byte cancel = 3;
     private final EventExecutor executor;
     protected Object obj;
-    protected byte status = pending;
+    protected volatile byte status = pending;
     protected List<EventStageListener<T>> listeners;
     protected EventStageListener<T> listener;
 
@@ -219,8 +219,20 @@ public class DefaultEventPromise<T> implements EventPromise<T> {
         return executor;
     }
 
+    protected EventStage<T> toCompletedStage(EventExecutor executor) {
+        assert getResult() != null;
+        return switch (getResult()) {
+            case Success<T>(T value) -> new SucceedEventStage<>(value, executor);
+            case Failure<T>(Throwable e) -> new FailedEventStage<T>(e, executor);
+            case null -> throw new RuntimeException("should never happen");
+        };
+    }
+
     @Override
     public <P> EventStage<P> map(Function<T, P> func, EventExecutor executor) {
+        if (isDone()) {
+            return toCompletedStage(executor).map(func);
+        }
         EventPromise<P> promise = newPromise(executor);
         addListener(new EventStageListener<>() {
             @Override
@@ -238,6 +250,9 @@ public class DefaultEventPromise<T> implements EventPromise<T> {
 
     @Override
     public <P> EventStage<P> flatmap(Function<T, EventStage<P>> func, EventExecutor executor) {
+        if (isDone()) {
+            return toCompletedStage(executor).flatmap(func);
+        }
         EventPromise<P> promise = newPromise(executor);
         addListener(new EventStageListener<>() {
             @Override
@@ -256,6 +271,9 @@ public class DefaultEventPromise<T> implements EventPromise<T> {
     @Override
     public <P> EventStage<P> transform(Function<Try<T>, Try<P>> transformer,
                                        EventExecutor executor) {
+        if (isDone()) {
+            return toCompletedStage(executor).transform(transformer);
+        }
         EventPromise<P> promise = newPromise(executor);
         addListener(new EventStageListener<>() {
             @Override
