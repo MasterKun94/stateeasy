@@ -9,6 +9,14 @@ import io.masterkun.stateeasy.indexlogging.LogObserver;
 import io.masterkun.stateeasy.indexlogging.LogSystem;
 import io.masterkun.stateeasy.indexlogging.Serializer;
 
+/**
+ * Implementation of the {@link EventStore} interface that stores events in a local file system.
+ * This class uses a log-based approach to manage and persist events, ensuring durability and
+ * efficient retrieval. The configuration for the file system and event serialization is provided
+ * through the constructor.
+ *
+ * @param <EVENT> the type of events that this store will manage
+ */
 public class LocalFileEventStore<EVENT> implements EventStore<EVENT> {
 
     private final LogFileEventStoreConfig config;
@@ -56,8 +64,8 @@ public class LocalFileEventStore<EVENT> implements EventStore<EVENT> {
     }
 
     @Override
-    public void expire(long expireAtEventId, EventStageListener<Boolean> listener) {
-        logger.expire(expireAtEventId);
+    public void expire(long expireBeforeEventId, EventStageListener<Boolean> listener) {
+        logger.expire(expireBeforeEventId);
     }
 
     @Override

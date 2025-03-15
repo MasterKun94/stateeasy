@@ -3,6 +3,7 @@ package io.masterkun.stateeasy.core.impl;
 import io.masterkun.stateeasy.concurrent.EventExecutor;
 import io.masterkun.stateeasy.concurrent.EventStageListener;
 import io.masterkun.stateeasy.core.Snapshot;
+import io.masterkun.stateeasy.core.SnapshotAndId;
 import io.masterkun.stateeasy.core.StateDef;
 import io.masterkun.stateeasy.core.StateStore;
 
@@ -63,10 +64,5 @@ public class MemoryStateStore<STATE> implements StateStore<STATE> {
             return;
         }
         listener.success(false);
-    }
-
-    @Override
-    public void close() {
-
     }
 }

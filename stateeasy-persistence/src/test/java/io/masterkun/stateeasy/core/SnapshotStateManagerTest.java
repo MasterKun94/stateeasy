@@ -3,7 +3,6 @@ package io.masterkun.stateeasy.core;
 import io.masterkun.stateeasy.concurrent.DefaultSingleThreadEventExecutor;
 import io.masterkun.stateeasy.concurrent.EventExecutor;
 import io.masterkun.stateeasy.core.StateManagerTestKit.TestState;
-import io.masterkun.stateeasy.core.impl.SnapshotAndId;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -15,7 +14,7 @@ public class SnapshotStateManagerTest {
     @Test
     public void testSnapshotState() throws Exception {
         StateStoreAdaptor<TestState> stateStore = new StateStoreAdaptor<>(new TestStateStore<>());
-        var stateDef = new SnapshotStateDef<TestState, TestEvent>() {
+        var stateDef = new StateDef<TestState, TestEvent>() {
             @Override
             public String name() {
                 return "test";

@@ -8,18 +8,27 @@ import io.masterkun.stateeasy.core.impl.NoopEventStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
-public class SnapshotStateManager<STATE, EVENT, STATE_DEF extends StateDef<STATE, EVENT>>
-        implements StateManager<STATE, EVENT> {
+/**
+ * A state manager that supports snapshotting for efficient state recovery and management. This
+ * class implements the {@link StateManager} interface, providing methods to manage the state and
+ * handle events. It also includes functionality to periodically create snapshots of the current
+ * state, which can be used to recover the state quickly in case of a failure.
+ *
+ * @param <STATE> the type of the state managed by this state manager
+ * @param <EVENT> the type of the events that can modify the state
+ */
+public final class SnapshotStateManager<STATE, EVENT> implements StateManager<STATE, EVENT> {
     private static final Logger LOG = LoggerFactory.getLogger(SnapshotStateManager.class);
 
-    protected final STATE_DEF stateDef;
+    private final StateDef<STATE, EVENT> stateDef;
     private final EventExecutor executor;
-    protected STATE state;
+    private STATE state;
     private long snapshotInterval;
     private long snapshotMsgMax;
     private EventStoreAdaptor<EVENT> eventStore;
@@ -31,7 +40,7 @@ public class SnapshotStateManager<STATE, EVENT, STATE_DEF extends StateDef<STATE
     private long lastSnapshotEventId = -1;
 
     SnapshotStateManager(EventExecutor singleThreadExecutor,
-                         STATE_DEF stateDef) {
+                         StateDef<STATE, EVENT> stateDef) {
         this.executor = singleThreadExecutor;
         this.stateDef = stateDef;
     }
@@ -93,11 +102,11 @@ public class SnapshotStateManager<STATE, EVENT, STATE_DEF extends StateDef<STATE
         state = stateDef.update(state, event);
     }
 
-    private void snapshot() {
+    private EventStage<?> snapshot() {
         assert executor.inExecutor();
         snapshotTask = null;
         if (lastSnapshotEventId == eventId) {
-            return;
+            return EventStage.succeed(null, executor);
         }
         try {
             snapshotRunning = true;
@@ -118,25 +127,27 @@ public class SnapshotStateManager<STATE, EVENT, STATE_DEF extends StateDef<STATE
                                     stateDef, lastSnapshotEventId, cause);
                         }
                     });
-            if (stateDef.snapshotConfig().isAutoExpire()) {
-                stage.flatmap(sId -> stateStore.expire(sId, executor.newPromise()))
-                        .flatmap(b -> eventStore.expire(eventId, executor.newPromise()))
-                        .addListener(new EventStageListener<>() {
-                            @Override
-                            public void success(Boolean value) {
-                                // TODO
-                            }
-
-                            @Override
-                            public void failure(Throwable cause) {
-                                LOG.error("{} expire failed with id {}", stateDef, snapshotId,
-                                        cause);
-                            }
-                        });
+            if (!stateDef.snapshotConfig().isAutoExpire()) {
+                return stage;
             }
+            return stage.flatmap(sId -> stateStore.expire(sId, executor.newPromise()))
+                    .flatmap(b -> eventStore.expire(eventId, executor.newPromise()))
+                    .addListener(new EventStageListener<>() {
+                        @Override
+                        public void success(Boolean value) {
+                            // TODO
+                        }
+
+                        @Override
+                        public void failure(Throwable cause) {
+                            LOG.error("{} expire failed with id {}", stateDef, snapshotId,
+                                    cause);
+                        }
+                    });
         } catch (Exception e) {
             snapshotRunning = false;
             LOG.error("Unexpected error", e);
+            return EventStage.failed(e, executor);
         }
     }
 
@@ -178,14 +189,18 @@ public class SnapshotStateManager<STATE, EVENT, STATE_DEF extends StateDef<STATE
     @Override
     public EventStage<Void> shutdown() {
         return EventStage.runAsync(() -> {
-            try {
-                if (snapshotTask != null) {
-                    snapshotTask.cancel(false);
-                }
-                snapshot();
-            } finally {
-                stateStore.close();
-            }
-        }, executor);
+                    if (snapshotTask != null) {
+                        snapshotTask.cancel(false);
+                    }
+                }, executor)
+                .flatmap(v -> snapshot())
+                .map(v -> {
+                    try {
+                        stateStore.close();
+                        return null;
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
     }
 }

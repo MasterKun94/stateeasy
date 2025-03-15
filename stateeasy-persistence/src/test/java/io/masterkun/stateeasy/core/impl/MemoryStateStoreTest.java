@@ -3,6 +3,7 @@ package io.masterkun.stateeasy.core.impl;
 import io.masterkun.stateeasy.concurrent.DefaultSingleThreadEventExecutor;
 import io.masterkun.stateeasy.concurrent.EventExecutor;
 import io.masterkun.stateeasy.core.Snapshot;
+import io.masterkun.stateeasy.core.SnapshotAndId;
 import io.masterkun.stateeasy.core.StateDef;
 import io.masterkun.stateeasy.core.StateStoreAdaptor;
 import org.junit.Test;

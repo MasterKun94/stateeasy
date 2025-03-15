@@ -1,9 +1,12 @@
-package io.masterkun.stateeasy.core.impl;
-
-import io.masterkun.stateeasy.core.Snapshot;
+package io.masterkun.stateeasy.core;
 
 import java.util.Map;
 
+/**
+ * A record that encapsulates a snapshot of the state along with its unique identifier.
+ *
+ * @param <STATE> the type of the state being managed
+ */
 public record SnapshotAndId<STATE>(long snapshotId, Snapshot<STATE> snapshot) {
     public STATE state() {
         return snapshot.state();

@@ -3,9 +3,19 @@ package io.masterkun.stateeasy.core;
 import io.masterkun.stateeasy.concurrent.EventPromise;
 import io.masterkun.stateeasy.concurrent.EventStage;
 import io.masterkun.stateeasy.concurrent.EventStageListener;
-import io.masterkun.stateeasy.core.impl.SnapshotAndId;
 
-public class StateStoreAdaptor<STATE> implements StateStore<STATE> {
+import java.io.Closeable;
+import java.io.IOException;
+
+/**
+ * An adaptor class for {@link StateStore} that provides a layer of abstraction, allowing the
+ * addition of extra functionality or modification of behavior for an underlying state store. This
+ * class implements both the {@link StateStore} and {@link Closeable} interfaces, enabling it to
+ * manage the lifecycle of the delegate state store.
+ *
+ * @param <STATE> the type of the state being managed by the state store
+ */
+public class StateStoreAdaptor<STATE> implements StateStore<STATE>, Closeable {
     private final StateStore<STATE> delegate;
 
     public StateStoreAdaptor(StateStore<STATE> delegate) {
@@ -53,7 +63,9 @@ public class StateStoreAdaptor<STATE> implements StateStore<STATE> {
     }
 
     @Override
-    public void close() {
-        delegate.close();
+    public void close() throws IOException {
+        if (delegate instanceof Closeable closeable) {
+            closeable.close();
+        }
     }
 }

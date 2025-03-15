@@ -2,6 +2,7 @@ package io.masterkun.stateeasy.core.impl;
 
 import io.masterkun.stateeasy.concurrent.EventStageListener;
 import io.masterkun.stateeasy.core.Snapshot;
+import io.masterkun.stateeasy.core.SnapshotAndId;
 import io.masterkun.stateeasy.core.StateDef;
 import io.masterkun.stateeasy.core.StateStore;
 import io.masterkun.stateeasy.indexlogging.EventLogger;
@@ -9,12 +10,20 @@ import io.masterkun.stateeasy.indexlogging.IdAndOffset;
 import io.masterkun.stateeasy.indexlogging.LogSystem;
 import io.masterkun.stateeasy.indexlogging.Serializer;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public class LocalFileStateStore<STATE> implements StateStore<STATE> {
+/**
+ * A concrete implementation of the {@link StateStore} interface that persists state snapshots to
+ * local files. This class leverages a logging system for efficient and reliable storage of state
+ * data.
+ *
+ * @param <STATE> the type of the state being managed by the state store
+ */
+public class LocalFileStateStore<STATE> implements StateStore<STATE>, Closeable {
 
     private final LogFileEventStoreConfig config;
     private final Serializer<Snapshot<STATE>> serializer;
@@ -73,12 +82,12 @@ public class LocalFileStateStore<STATE> implements StateStore<STATE> {
 
     @Override
     public void expire(long expireBeforeSnapshotId, EventStageListener<Boolean> listener) {
-
+        logger.expire(expireBeforeSnapshotId, listener);
     }
 
     @Override
     public void close() {
-
+        // TODO
     }
 
     private static class SnapshotSerializer<STATE> implements Serializer<Snapshot<STATE>> {

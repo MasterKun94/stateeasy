@@ -4,6 +4,14 @@ import io.masterkun.stateeasy.concurrent.EventPromise;
 import io.masterkun.stateeasy.concurrent.EventStage;
 import io.masterkun.stateeasy.concurrent.EventStageListener;
 
+/**
+ * An adaptor for the {@link EventStore} interface, providing a way to wrap another implementation
+ * of the {@code EventStore} and potentially add additional behavior or modifications to its
+ * methods. This class delegates all calls to the wrapped {@code EventStore} instance, allowing for
+ * extension points around the core functionality.
+ *
+ * @param <EVENT> the type of events managed by this store
+ */
 public class EventStoreAdaptor<EVENT> implements EventStore<EVENT> {
     private final EventStore<EVENT> delegate;
 
@@ -50,8 +58,8 @@ public class EventStoreAdaptor<EVENT> implements EventStore<EVENT> {
     }
 
     @Override
-    public void expire(long expireAtEventId, EventStageListener<Boolean> listener) {
-        delegate.expire(expireAtEventId, listener);
+    public void expire(long expireBeforeEventId, EventStageListener<Boolean> listener) {
+        delegate.expire(expireBeforeEventId, listener);
     }
 
     @Override

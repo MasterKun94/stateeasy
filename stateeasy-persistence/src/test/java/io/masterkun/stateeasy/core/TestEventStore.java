@@ -52,11 +52,11 @@ public class TestEventStore<EVENT> implements EventStore<EVENT> {
     }
 
     @Override
-    public void expire(long expireAtEventId, EventStageListener<Boolean> listener) {
-        var future = memory.expire(expireAtEventId, executor.newPromise());
+    public void expire(long expireBeforeEventId, EventStageListener<Boolean> listener) {
+        var future = memory.expire(expireBeforeEventId, executor.newPromise());
         if (internal != null) {
             future = future
-                    .flatmap(b -> internal.expire(expireAtEventId, executor.newPromise()));
+                    .flatmap(b -> internal.expire(expireBeforeEventId, executor.newPromise()));
         }
         future.addListener(listener);
     }

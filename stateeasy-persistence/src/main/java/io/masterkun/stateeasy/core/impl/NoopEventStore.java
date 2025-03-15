@@ -24,7 +24,7 @@ public class NoopEventStore<EVENT> implements EventStore<EVENT> {
     }
 
     @Override
-    public void expire(long expireAtEventId, EventStageListener<Boolean> listener) {
+    public void expire(long expireBeforeEventId, EventStageListener<Boolean> listener) {
         listener.success(true);
     }
 

@@ -35,7 +35,7 @@ public class LogFileEventStoreConfigTest {
         assertEquals(ConfigMemorySize.ofBytes(4 * 1024),
                 logFileEventStoreConfig.getSerializeBufferInit());
         assertEquals(ConfigMemorySize.ofBytes(1024 * 1024),
-                logFileEventStoreConfig.getSerializeBufferMax());
+                logFileEventStoreConfig.getSerializeBufferLimit());
         assertEquals(Duration.ofSeconds(1), logFileEventStoreConfig.getReadTimeout());
     }
 
@@ -53,7 +53,7 @@ public class LogFileEventStoreConfigTest {
                         "auto-flush-interval: 20ms\n" +
                         "serialize-buffer-direct: false\n" +
                         "serialize-buffer-init: 8K\n" +
-                        "serialize-buffer-max: 2M\n" +
+                        "serialize-buffer-limit: 2M\n" +
                         "read-timeout: 2s"
         );
         LogFileEventStoreConfig logFileEventStoreConfig = LogFileEventStoreConfig.create(config);
@@ -75,7 +75,7 @@ public class LogFileEventStoreConfigTest {
         assertEquals(ConfigMemorySize.ofBytes(8 * 1024),
                 logFileEventStoreConfig.getSerializeBufferInit());
         assertEquals(ConfigMemorySize.ofBytes(2 * 1024 * 1024),
-                logFileEventStoreConfig.getSerializeBufferMax());
+                logFileEventStoreConfig.getSerializeBufferLimit());
         assertEquals(Duration.ofSeconds(2), logFileEventStoreConfig.getReadTimeout());
     }
 }

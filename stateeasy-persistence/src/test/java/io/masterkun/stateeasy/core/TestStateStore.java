@@ -5,7 +5,6 @@ import io.masterkun.stateeasy.concurrent.EventExecutor;
 import io.masterkun.stateeasy.concurrent.EventStage;
 import io.masterkun.stateeasy.concurrent.EventStageListener;
 import io.masterkun.stateeasy.core.impl.MemoryStateStore;
-import io.masterkun.stateeasy.core.impl.SnapshotAndId;
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -74,13 +73,5 @@ public class TestStateStore<STATE> implements StateStore<STATE> {
                     .flatmap(b -> internal.expire(expireBeforeSnapshotId, executor.newPromise()));
         }
         future.addListener(listener);
-    }
-
-    @Override
-    public void close() {
-        memory.close();
-        if (internal != null) {
-            internal.close();
-        }
     }
 }
