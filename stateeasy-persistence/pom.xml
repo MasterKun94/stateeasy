@@ -20,5 +20,9 @@
             <groupId>io.masterkun.commons</groupId>
             <artifactId>stateeasy-index-logging</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.typesafe</groupId>
+            <artifactId>config</artifactId>
+        </dependency>
     </dependencies>
 </project>

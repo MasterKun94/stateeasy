@@ -15,7 +15,7 @@ public record LogConfig(
         String name,
         File logDir,
         int segmentNum,
-        int segmentSizeMax,
+        int segmentSize,
         int indexChunkSize,
         int indexPersistSize,
         Duration indexPersistInterval,
@@ -31,13 +31,13 @@ public record LogConfig(
     }
 
     public int indexSizeMax() {
-        return segmentSizeMax / indexChunkSize * 8;
+        return segmentSize / indexChunkSize * 8;
     }
 
     public Builder toBuilder() {
         return new Builder(logDir, name)
                 .segmentNum(segmentNum)
-                .segmentSizeMax(segmentSizeMax)
+                .segmentSize(segmentSize)
                 .indexChunkSize(indexChunkSize)
                 .indexPersistSize(indexPersistSize)
                 .indexPersistInterval(indexPersistInterval)
@@ -52,7 +52,7 @@ public record LogConfig(
         private final String name;
         private File logDir;
         private int segmentNum = 8;
-        private int segmentSizeMax = 16 * 1024 * 1024;
+        private int segmentSize = 16 * 1024 * 1024;
         private int indexChunkSize = 8192;
         private int indexPersistSize = 65535;
         private Duration indexPersistInterval = Duration.ofMillis(10);
@@ -78,8 +78,8 @@ public record LogConfig(
             return this;
         }
 
-        public Builder segmentSizeMax(int logSizeMax) {
-            this.segmentSizeMax = logSizeMax;
+        public Builder segmentSize(int segmentSize) {
+            this.segmentSize = segmentSize;
             return this;
         }
 
@@ -133,7 +133,7 @@ public record LogConfig(
                     name,
                     logDir,
                     segmentNum,
-                    segmentSizeMax,
+                    segmentSize,
                     indexChunkSize,
                     indexPersistSize,
                     indexPersistInterval,

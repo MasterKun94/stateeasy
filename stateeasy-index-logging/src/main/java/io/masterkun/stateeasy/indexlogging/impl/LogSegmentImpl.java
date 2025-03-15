@@ -40,11 +40,11 @@ public class LogSegmentImpl<T> implements LogSegment<T> {
             config.logDir().mkdir();
         }
         var metaInfo = MetaInfo.create(Utils.metaFile(config, initId), initId, initOffset,
-                config.indexSizeMax(), config.segmentSizeMax());
+                config.indexSizeMax(), config.segmentSize());
         var indexer = LogIndexer.create(Utils.indexFile(config, initId), config.indexSizeMax(),
                 config.indexChunkSize(), config.indexPersistSize(), config.indexPersistInterval(),
                 executor);
-        var reader = LogReader.create(Utils.logFile(config, initId), config.segmentSizeMax());
+        var reader = LogReader.create(Utils.logFile(config, initId), config.segmentSize());
         var writer = LogWriter.create(reader, indexer, executor, config.autoFlushSize(),
                 config.autoFlushInterval(), config.serializeBufferDirect(),
                 config.serializeBufferInit(), config.serializeBufferMax());

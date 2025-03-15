@@ -171,7 +171,7 @@ public interface EventLogger<T> {
     default EventStage<IdAndOffset> write(T obj, boolean flush, boolean immediateCallback,
                                           @Nullable EventPromise<IdAndOffset> promise) {
         if (promise == null) {
-            promise = EventPromise.newPromise(executor());
+            promise = executor().newPromise();
         }
         write(obj, flush, immediateCallback, (EventStageListener<IdAndOffset>) promise);
         return promise;
@@ -208,9 +208,9 @@ public interface EventLogger<T> {
      * @return the promise that will be completed with null upon successful completion of the flush,
      * or exceptionally if an error occurs during the flush operation
      */
-    default EventStage<Void> flush(EventPromise<Void> promise) {
+    default EventStage<Void> flush(@Nullable EventPromise<Void> promise) {
         if (promise == null) {
-            promise = EventPromise.newPromise(executor());
+            promise = executor().newPromise();
         }
         flush((EventStageListener<Void>) promise);
         return promise;
@@ -231,7 +231,7 @@ public interface EventLogger<T> {
      * Reads log entries starting from the specified offset and ID, and invokes the provided
      * observer for each entry.
      *
-     * @param startOffset the offset of the first log entry to read
+     * @param startOffset the offset from which to start reading the event
      * @param startId     the ID of the first log entry to read
      * @param limit       the maximum number of log entries to read
      * @param observer    the observer to be notified with each log entry, its completion, or any
@@ -252,6 +252,87 @@ public interface EventLogger<T> {
     default void read(IdAndOffset idAndOffset, int limit, LogObserver<T> observer) {
         read(idAndOffset.offset(), idAndOffset.id(), limit, observer);
     }
+
+    /**
+     * Asynchronously reads a single entity by its ID.
+     *
+     * @param id the ID of the entity to be read
+     * @return a CompletableFuture that will be completed with the entity, or null if not found
+     */
+    default CompletableFuture<@Nullable T> readOne(long id) {
+        CompletableFuture<T> future = new CompletableFuture<>();
+        readOne(id, new EventStageListenerAdaptor<>(future));
+        return future;
+    }
+
+    /**
+     * Reads a single event with the specified ID and returns a promise that will be completed with
+     * the result.
+     *
+     * @param id      the ID of the event to read
+     * @param promise an optional promise to be used for the operation; if null, a new promise is
+     *                created
+     * @return the promise that will be completed with the result of the read operation, or null if
+     * not found
+     */
+    default EventStage<@Nullable T> readOne(long id, @Nullable EventPromise<T> promise) {
+        if (promise == null) {
+            promise = executor().newPromise();
+        }
+        readOne(id, (EventStageListener<T>) promise);
+        return promise;
+    }
+
+    /**
+     * Reads a single entity from the data source based on the specified ID
+     *
+     * @param id       the unique identifier of the entity to be read
+     * @param listener the callback to be notified with the result, which may be null if no entity
+     *                 is found
+     */
+    void readOne(long id, EventStageListener<@Nullable T> listener);
+
+    /**
+     * Reads a single event from the specified start offset with the given identifier.
+     *
+     * @param startOffset the offset from which to start reading the event
+     * @param id          the unique identifier of the event
+     * @return a CompletableFuture that will be completed with the event, or null if no event is
+     * found
+     */
+    default CompletableFuture<@Nullable T> readOne(long startOffset, long id) {
+        CompletableFuture<T> future = new CompletableFuture<>();
+        readOne(startOffset, id, new EventStageListenerAdaptor<>(future));
+        return future;
+    }
+
+    /**
+     * Reads a single event from the specified start offset with the given identifier.
+     *
+     * @param startOffset the offset from which to start reading the event
+     * @param id          the unique identifier of the event to read
+     * @param promise     the promise to be completed with the result of the read operation, or null
+     *                    to create a new one
+     * @return the promise that will be completed with the result of the read operation
+     */
+    default EventStage<@Nullable T> readOne(long startOffset, long id,
+                                            @Nullable EventPromise<T> promise) {
+        if (promise == null) {
+            promise = executor().newPromise();
+        }
+        readOne(startOffset, id, (EventStageListener<T>) promise);
+        return promise;
+    }
+
+    /**
+     * Reads a single event from the specified start offset with the given identifier.
+     *
+     * @param startOffset the offset from which to start reading the event
+     * @param id          the unique identifier for the event
+     * @param listener    the listener to be notified with the read event or null if no event is
+     *                    found
+     */
+    void readOne(long startOffset, long id, EventStageListener<@Nullable T> listener);
 
 
     /**
@@ -305,7 +386,7 @@ public interface EventLogger<T> {
      */
     default EventStage<Boolean> expire(long idBefore, EventPromise<Boolean> promise) {
         if (promise == null) {
-            promise = EventPromise.newPromise(executor());
+            promise = executor().newPromise();
         }
         expire(idBefore, (EventStageListener<Boolean>) promise);
         return promise;

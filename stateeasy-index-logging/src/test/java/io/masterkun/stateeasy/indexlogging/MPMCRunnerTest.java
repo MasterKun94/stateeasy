@@ -36,7 +36,7 @@ public class MPMCRunnerTest {
         io.masterkun.stateeasy.indexlogging.LogSystem system =
                 new io.masterkun.stateeasy.indexlogging.LogSystem(2);
         io.masterkun.stateeasy.indexlogging.LogConfig config = LogConfig.builder("test", testDir)
-                .segmentSizeMax(1024 * 1024)
+                .segmentSize(1024 * 1024)
                 .autoFlushInterval(Duration.ofMillis(2))
                 .readTimeout(Duration.ofMillis(1000))
                 .build();

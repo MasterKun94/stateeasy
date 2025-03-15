@@ -3,6 +3,7 @@ package io.masterkun.stateeasy.core;
 import io.masterkun.stateeasy.concurrent.DefaultSingleThreadEventExecutor;
 import io.masterkun.stateeasy.concurrent.EventExecutor;
 import io.masterkun.stateeasy.core.StateManagerTestKit.TestState;
+import io.masterkun.stateeasy.core.impl.SnapshotAndId;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -22,7 +23,10 @@ public class SnapshotStateManagerTest {
 
             @Override
             public SnapshotConfig snapshotConfig() {
-                return new SnapshotConfig(Duration.ofMillis(100), true);
+                SnapshotConfig config = new SnapshotConfig();
+                config.setSnapshotInterval(Duration.ofMillis(100));
+                config.setAutoExpire(true);
+                return config;
             }
 
             @Override
@@ -45,7 +49,7 @@ public class SnapshotStateManagerTest {
         manager.start().toFuture().get();
         manager.send(new TestEvent("key", "value")).toFuture().get();
         Assert.assertEquals("value", manager.query(state -> state.get("key")).toFuture().get());
-        Snapshot<TestState> read = stateStore.read(executor.newPromise()).toFuture().get();
+        SnapshotAndId<TestState> read = stateStore.read(executor.newPromise()).toFuture().get();
         Assert.assertNull(read);
         Thread.sleep(120);
         read = stateStore.read(executor.newPromise()).toFuture().get();

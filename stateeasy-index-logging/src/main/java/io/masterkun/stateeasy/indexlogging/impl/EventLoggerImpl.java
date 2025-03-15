@@ -12,6 +12,7 @@ import io.masterkun.stateeasy.indexlogging.exception.FileAlreadyLockedException;
 import io.masterkun.stateeasy.indexlogging.exception.IdExpiredException;
 import io.masterkun.stateeasy.indexlogging.exception.LogCorruptException;
 import io.micrometer.core.instrument.MeterRegistry;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -258,6 +259,34 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics, Clo
             }
         }
         observer.onError(new IdExpiredException(startId));
+    }
+
+    @Override
+    public void readOne(long id, EventStageListener<T> listener) {
+        readOne(0, id, listener);
+    }
+
+    @Override
+    public void readOne(long startOffset, long id, EventStageListener<@Nullable T> listener) {
+        read(startOffset, id, 1, new LogObserver<>() {
+            T value;
+
+            @Override
+            public void onNext(long id, long offset, T value) {
+                assert this.value == null;
+                this.value = value;
+            }
+
+            @Override
+            public void onComplete(long nextId, long nextOffset) {
+                listener.success(value);
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                listener.failure(e);
+            }
+        });
     }
 
     private void doReadCurrentSegment(LogSegment<T> segment, long startOffset, long startId,

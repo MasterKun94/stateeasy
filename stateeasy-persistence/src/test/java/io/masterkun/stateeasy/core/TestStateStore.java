@@ -5,6 +5,7 @@ import io.masterkun.stateeasy.concurrent.EventExecutor;
 import io.masterkun.stateeasy.concurrent.EventStage;
 import io.masterkun.stateeasy.concurrent.EventStageListener;
 import io.masterkun.stateeasy.core.impl.MemoryStateStore;
+import io.masterkun.stateeasy.core.impl.SnapshotAndId;
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -41,9 +42,9 @@ public class TestStateStore<STATE> implements StateStore<STATE> {
     }
 
     @Override
-    public void write(Snapshot<STATE> snapshot, EventStageListener<Void> listener) {
+    public void write(Snapshot<STATE> snapshot, EventStageListener<Long> listener) {
         queue.add(snapshot);
-        EventStage<Void> future = memory.write(snapshot, executor.newPromise());
+        EventStage<Long> future = memory.write(snapshot, executor.newPromise());
         if (internal != null) {
             future = future.flatmap(v -> internal.write(snapshot, executor.newPromise()));
         }
@@ -51,8 +52,8 @@ public class TestStateStore<STATE> implements StateStore<STATE> {
     }
 
     @Override
-    public void read(EventStageListener<Snapshot<STATE>> listener) {
-        EventStage<Snapshot<STATE>> future = memory.read(executor.newPromise());
+    public void read(EventStageListener<SnapshotAndId<STATE>> listener) {
+        EventStage<SnapshotAndId<STATE>> future = memory.read(executor.newPromise());
         if (internal != null) {
             future = future.flatmap(snapshot ->
                     internal.read(executor.newPromise()).map(snapshot1 -> {

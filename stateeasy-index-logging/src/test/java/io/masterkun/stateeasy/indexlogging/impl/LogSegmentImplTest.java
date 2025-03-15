@@ -57,7 +57,7 @@ public class LogSegmentImplTest {
     @Test
     public void testCreate() throws IOException {
         LogConfig config = LogConfig.builder("test", logDir)
-                .segmentSizeMax(1024 * 1024)
+                .segmentSize(1024 * 1024)
                 .indexChunkSize(1024)
                 .indexPersistSize(2048)
                 .indexPersistInterval(Duration.ofMillis(20))

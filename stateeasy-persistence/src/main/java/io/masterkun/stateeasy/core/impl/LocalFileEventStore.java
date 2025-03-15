@@ -6,18 +6,33 @@ import io.masterkun.stateeasy.core.EventStore;
 import io.masterkun.stateeasy.indexlogging.EventLogger;
 import io.masterkun.stateeasy.indexlogging.IdAndOffset;
 import io.masterkun.stateeasy.indexlogging.LogObserver;
+import io.masterkun.stateeasy.indexlogging.LogSystem;
+import io.masterkun.stateeasy.indexlogging.Serializer;
 
 public class LocalFileEventStore<EVENT> implements EventStore<EVENT> {
-    private final EventLogger<EVENT> logger;
 
-    public LocalFileEventStore(EventLogger<EVENT> logger) {
-        this.logger = logger;
+    private final LogFileEventStoreConfig config;
+    private final Serializer<EVENT> serializer;
+    private EventLogger<EVENT> logger;
+
+    public LocalFileEventStore(LogFileEventStoreConfig config,
+                               Serializer<EVENT> serializer) {
+        this.config = config;
+        this.serializer = serializer;
     }
 
     @Override
     public void initialize(EventSourceStateDef<?, EVENT> stateDef,
                            EventStageListener<Void> listener) {
-        // TODO
+        try {
+            LogSystem system =
+                    LocalFileLogSystemProvider.getLogSystem(config.getThreadNumPerDisk());
+            String name = "event-store-" + stateDef.name();
+            this.logger = system.get(config.toLogConfig(name), serializer);
+            listener.success(null);
+        } catch (Throwable e) {
+            listener.failure(e);
+        }
     }
 
     @Override

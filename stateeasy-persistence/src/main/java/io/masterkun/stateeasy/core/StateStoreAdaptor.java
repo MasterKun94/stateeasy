@@ -3,6 +3,7 @@ package io.masterkun.stateeasy.core;
 import io.masterkun.stateeasy.concurrent.EventPromise;
 import io.masterkun.stateeasy.concurrent.EventStage;
 import io.masterkun.stateeasy.concurrent.EventStageListener;
+import io.masterkun.stateeasy.core.impl.SnapshotAndId;
 
 public class StateStoreAdaptor<STATE> implements StateStore<STATE> {
     private final StateStore<STATE> delegate;
@@ -21,23 +22,23 @@ public class StateStoreAdaptor<STATE> implements StateStore<STATE> {
         delegate.initialize(stateDef, listener);
     }
 
-    public EventStage<Void> write(Snapshot<STATE> snapshot, EventPromise<Void> promise) {
-        write(snapshot, (EventStageListener<Void>) promise);
+    public EventStage<Long> write(Snapshot<STATE> snapshot, EventPromise<Long> promise) {
+        write(snapshot, (EventStageListener<Long>) promise);
         return promise;
     }
 
     @Override
-    public void write(Snapshot<STATE> snapshot, EventStageListener<Void> listener) {
+    public void write(Snapshot<STATE> snapshot, EventStageListener<Long> listener) {
         delegate.write(snapshot, listener);
     }
 
-    public EventStage<Snapshot<STATE>> read(EventPromise<Snapshot<STATE>> promise) {
-        read((EventStageListener<Snapshot<STATE>>) promise);
+    public EventStage<SnapshotAndId<STATE>> read(EventPromise<SnapshotAndId<STATE>> promise) {
+        read((EventStageListener<SnapshotAndId<STATE>>) promise);
         return promise;
     }
 
     @Override
-    public void read(EventStageListener<Snapshot<STATE>> listener) {
+    public void read(EventStageListener<SnapshotAndId<STATE>> listener) {
         delegate.read(listener);
     }
 
