@@ -42,19 +42,20 @@ public class LogFileEventStoreConfigTest {
     @Test
     public void testCreateWithCustomConfig() {
         Config config = ConfigFactory.parseString(
-                "thread-num-per-disk: 2\n" +
-                        "log-dir: custom-store\n" +
-                        "segment-num: 16\n" +
-                        "segment-size: 64M\n" +
-                        "index-chunk-size: 128K\n" +
-                        "index-persist-size: 256K\n" +
-                        "index-persist-interval: 20ms\n" +
-                        "auto-flush-size: 16K\n" +
-                        "auto-flush-interval: 20ms\n" +
-                        "serialize-buffer-direct: false\n" +
-                        "serialize-buffer-init: 8K\n" +
-                        "serialize-buffer-limit: 2M\n" +
-                        "read-timeout: 2s"
+                """
+                        thread-num-per-disk: 2
+                        log-dir: custom-store
+                        segment-num: 16
+                        segment-size: 64M
+                        index-chunk-size: 128K
+                        index-persist-size: 256K
+                        index-persist-interval: 20ms
+                        auto-flush-size: 16K
+                        auto-flush-interval: 20ms
+                        serialize-buffer-direct: false
+                        serialize-buffer-init: 8K
+                        serialize-buffer-limit: 2M
+                        read-timeout: 2s"""
         );
         LogFileEventStoreConfig logFileEventStoreConfig = LogFileEventStoreConfig.create(config);
 
