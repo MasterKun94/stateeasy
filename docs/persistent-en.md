@@ -1,10 +1,14 @@
-# StateEasy: Reactive State Management and Persistence Tool
+# StateEasy Persistent
 
-StateEasy is an asynchronous, reactive state management and persistence tool designed to simplify
-state handling in applications. By customizing the `StateDef` and `EventSourceStateDef` interfaces,
-users can flexibly define their own logic for state updates and persistence strategies. This project
-offers a comprehensive mechanism for initializing, updating, querying, and persisting states,
-supporting an event-driven design pattern.
+Reactive State Management and Persistence Tool
+
+## Introduction
+
+StateEasy Persistent is an asynchronous, reactive state management and persistence tool designed to
+simplify state handling in applications. By customizing the `StateDef` and `EventSourceStateDef`
+interfaces, users can flexibly define their own logic for state updates and persistence strategies.
+This project offers a comprehensive mechanism for initializing, updating, querying, and persisting
+states, supporting an event-driven design pattern.
 
 ## Features
 
@@ -19,6 +23,19 @@ supporting an event-driven design pattern.
   interfaces are provided for managing and storing event streams conveniently.
 
 ## Getting Started
+
+### Adding Dependencies
+
+For Maven, add the following dependency to your `pom.xml`:
+
+```xml
+
+<dependency>
+    <groupId>io.masterkun.commons</groupId>
+    <artifactId>stateeasy-persistent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+</dependency>
+```
 
 Below is an example of how to use StateEasy to create a simple counter application. This example
 illustrates how to define a state class (`CounterState`), an event class (`IncrementEvent`), along

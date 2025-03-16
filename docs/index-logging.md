@@ -1,6 +1,4 @@
-# index-logging
-
-Choose Language: [English](index-logging-en)
+# StateEasy Index Logging
 
 ## 介绍
 
@@ -8,6 +6,19 @@ Choose Language: [English](index-logging-en)
 可应用于WAL、消息队列、事件溯源等多种场景。
 
 ## 使用样例
+
+### 引入依赖
+
+maven：
+
+```xml
+
+<dependency>
+    <groupId>io.masterkun.commons</groupId>
+    <artifactId>stateeasy-index-logging</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+</dependency>
+```
 
 ### 自定义消息类型
 

@@ -22,7 +22,8 @@ public class Example {
 
     public static void main(String[] args) throws Exception {
         EventExecutor executor = new DefaultSingleThreadEventExecutor();
-        StateManager<CounterState, IncrementEvent> stateManager = StateManager.create(new CounterStateDef(), executor);
+        StateManager<CounterState, IncrementEvent> stateManager =
+                StateManager.create(new CounterStateDef(), executor);
         stateManager.start().toFuture().get();
         Try<Long> get = stateManager.query(state -> state.get("key"))
                 .toFuture()
@@ -30,7 +31,8 @@ public class Example {
         // 输出初始计数器状态，若初次执行，结果应当是0，若重复执行多次，结果应当是上次执行时的最终结果
         System.out.println(get);
         stateManager.send(new IncrementEvent("key", 1));
-        Try<Long> result = stateManager.sendAndQuery(new IncrementEvent("key", 2), state -> state.get("key"))
+        Try<Long> result = stateManager.sendAndQuery(new IncrementEvent("key", 2),
+                        state -> state.get("key"))
                 .toFuture()
                 .syncUninterruptibly();
         // 输出计数器更新后的结果
@@ -41,7 +43,10 @@ public class Example {
         System.exit(0);
     }
 
-    public record IncrementEvent(String key, long num) {};
+    public record IncrementEvent(String key, long num) {
+    }
+
+    ;
 
     public static class CounterState {
         private final Map<String, Long> map;
@@ -99,7 +104,8 @@ public class Example {
         }
     }
 
-    public static class CounterStateDef implements EventSourceStateDef<CounterState, IncrementEvent> {
+    public static class CounterStateDef implements EventSourceStateDef<CounterState,
+            IncrementEvent> {
         private static final String dataStorePath = ".tmp/store";
 
         public CounterStateDef() {

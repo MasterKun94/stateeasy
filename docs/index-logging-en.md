@@ -1,6 +1,4 @@
-# index-logging
-
-选择语言: [中文](index-logging)
+# StateEasy Index Logging
 
 ## Introduction
 
@@ -9,6 +7,19 @@ supports appending messages and reading messages based on indexes. It can be app
 scenarios such as Write-Ahead Logging (WAL), message queues, and event sourcing.
 
 ## Usage Example
+
+### Adding Dependencies
+
+For Maven, add the following dependency to your `pom.xml`:
+
+```xml
+
+<dependency>
+    <groupId>io.masterkun.commons</groupId>
+    <artifactId>stateeasy-index-logging</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+</dependency>
+```
 
 ### Custom Message Type
 
