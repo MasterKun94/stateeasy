@@ -190,9 +190,9 @@ public final class LogSystem implements HasMetrics {
     /**
      * Initiates the shutdown process for the logging system.
      * <p>
-     * This method sets the shutdown flag to true, closes all loggers in the cache, clears the cache,
-     * and shuts down the executor pool. Any exceptions that occur during the closure of individual
-     * loggers are logged as errors.
+     * This method sets the shutdown flag to true, closes all loggers in the cache, clears the
+     * cache, and shuts down the executor pool. Any exceptions that occur during the closure of
+     * individual loggers are logged as errors.
      *
      * @return a CompletableFuture that will be completed when the shutdown process is complete
      */

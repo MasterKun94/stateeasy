@@ -17,17 +17,22 @@ import java.util.function.Function;
  */
 public sealed interface StateManager<STATE, EVENT> permits SnapshotStateManager {
     /**
-     * Creates a new {@code StateManager} instance based on the provided state definition and event executor.
+     * Creates a new {@code StateManager} instance based on the provided state definition and event
+     * executor.
      *
-     * @param <STATE> the type of the state being managed
-     * @param <EVENT> the type of the events that can update the state
-     * @param stateDef the state definition that defines the behavior and initial state of the state manager
-     * @param executor the event executor used to handle the execution of asynchronous tasks related to state management
+     * @param <STATE>  the type of the state being managed
+     * @param <EVENT>  the type of the events that can update the state
+     * @param stateDef the state definition that defines the behavior and initial state of the state
+     *                 manager
+     * @param executor the event executor used to handle the execution of asynchronous tasks related
+     *                 to state management
      * @return a new {@code StateManager<STATE, EVENT>} instance
      */
-    static <STATE, EVENT> StateManager<STATE, EVENT> create(StateDef<STATE, EVENT> stateDef, EventExecutor executor) {
+    static <STATE, EVENT> StateManager<STATE, EVENT> create(StateDef<STATE, EVENT> stateDef,
+                                                            EventExecutor executor) {
         return StateManagerPool.INSTANCE.create(stateDef, executor);
     }
+
     /**
      * Returns the name of the state. Each StateDef instance's name must be unique and cannot be
      * repeated.
@@ -35,6 +40,7 @@ public sealed interface StateManager<STATE, EVENT> permits SnapshotStateManager 
      * @return the name of the state as a String
      */
     String name();
+
     /**
      * Initiates the state management process.
      * <p>
@@ -50,9 +56,9 @@ public sealed interface StateManager<STATE, EVENT> permits SnapshotStateManager 
      * Sends an event to the state manager for processing.
      * <p>
      * This method allows you to send an event of type {@code EVENT} to the state manager. The event
-     * will be processed according to the current state and any defined state transitions. The method
-     * returns an {@code EventStage<Void>} which can be used to track the completion of the event
-     * processing.
+     * will be processed according to the current state and any defined state transitions. The
+     * method returns an {@code EventStage<Void>} which can be used to track the completion of the
+     * event processing.
      *
      * @param event the event to be sent to the state manager
      * @return an {@code EventStage<Void>} representing the asynchronous operation
@@ -67,8 +73,8 @@ public sealed interface StateManager<STATE, EVENT> permits SnapshotStateManager 
      * returns an {@code EventStage<T>} which can be used to track the completion of the event
      * processing and to retrieve the result of the function.
      *
-     * @param <T> the type of the result returned by the function
-     * @param event the event to be sent to the state manager
+     * @param <T>      the type of the result returned by the function
+     * @param event    the event to be sent to the state manager
      * @param function the function to apply to the resulting state
      * @return an {@code EventStage<T>} representing the asynchronous operation and the result of
      * the function

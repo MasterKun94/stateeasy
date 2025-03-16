@@ -18,6 +18,7 @@ import java.util.concurrent.CompletableFuture;
  */
 public interface EventLogger<T> {
     String name();
+
     /**
      * Returns the ID of the first log entry in the log.
      *

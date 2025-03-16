@@ -7,9 +7,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 class StateManagerPool {
     public static final StateManagerPool INSTANCE = new StateManagerPool();
-    private StateManagerPool() {}
-
     private static final Map<String, StateManager<?, ?>> stateManagers = new ConcurrentHashMap<>();
+
+    private StateManagerPool() {
+    }
 
     @SuppressWarnings("unchecked")
     public <STATE, EVENT> StateManager<STATE, EVENT> create(StateDef<STATE, EVENT> stateDef,
