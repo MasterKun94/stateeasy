@@ -7,7 +7,7 @@ StateEasy is a collection of toolkits focused on reactive programming and persis
 
 ### StateEasy Concurrent - Asynchronous Task Scheduling Toolkit
 
-[See detailed usage instructions here](docs/concurrent.md)
+[See detailed usage instructions here](docs/concurrent-en.md)
 
 - **Overview**: Provides a complete asynchronous task execution framework with a reactive programming model and rich APIs to simplify the management of concurrent operations.
 - **Key Features**:
@@ -18,7 +18,7 @@ StateEasy is a collection of toolkits focused on reactive programming and persis
 
 ### StateEasy Index Logging - Efficient Message Logging System
 
-[See detailed usage instructions here](docs/index-logging.md)
+[See detailed usage instructions here](docs/index-logging-en.md)
 
 - **Overview**: A lightweight, high-performance log reading and writing component built using mmap technology, suitable for various applications such as WAL (Write-Ahead Logging) and message queues.
 - **Key Features**:
@@ -28,7 +28,7 @@ StateEasy is a collection of toolkits focused on reactive programming and persis
 
 ### StateEasy Persistent - Reactive State Management and Persistence Tool
 
-[See detailed usage instructions here](docs/persistent.md)
+[See detailed usage instructions here](docs/persistent-en.md)
 
 - **Overview**: Offers an asynchronous reactive state management and persistence mechanism, supporting customizable state update logic and persistence strategies.
 - **Key Features**:
