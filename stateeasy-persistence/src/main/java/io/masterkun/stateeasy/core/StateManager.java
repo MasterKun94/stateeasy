@@ -1,5 +1,6 @@
 package io.masterkun.stateeasy.core;
 
+import io.masterkun.stateeasy.concurrent.EventExecutor;
 import io.masterkun.stateeasy.concurrent.EventStage;
 
 import java.util.function.Function;
@@ -12,9 +13,28 @@ import java.util.function.Function;
  * allowing for flexibility in the type of state and messages that can be managed.
  *
  * @param <STATE> the type of the state being managed
- * @param <MSG>   the type of the messages being processed
+ * @param <EVENT> the type of the events handled by this state manager
  */
-public sealed interface StateManager<STATE, MSG> permits SnapshotStateManager {
+public sealed interface StateManager<STATE, EVENT> permits SnapshotStateManager {
+    /**
+     * Creates a new {@code StateManager} instance based on the provided state definition and event executor.
+     *
+     * @param <STATE> the type of the state being managed
+     * @param <EVENT> the type of the events that can update the state
+     * @param stateDef the state definition that defines the behavior and initial state of the state manager
+     * @param executor the event executor used to handle the execution of asynchronous tasks related to state management
+     * @return a new {@code StateManager<STATE, EVENT>} instance
+     */
+    static <STATE, EVENT> StateManager<STATE, EVENT> create(StateDef<STATE, EVENT> stateDef, EventExecutor executor) {
+        return StateManagerPool.INSTANCE.create(stateDef, executor);
+    }
+    /**
+     * Returns the name of the state. Each StateDef instance's name must be unique and cannot be
+     * repeated.
+     *
+     * @return the name of the state as a String
+     */
+    String name();
     /**
      * Initiates the state management process.
      * <p>
@@ -27,34 +47,33 @@ public sealed interface StateManager<STATE, MSG> permits SnapshotStateManager {
     EventStage<Void> start();
 
     /**
-     * Sends a message to the state manager for processing.
+     * Sends an event to the state manager for processing.
      * <p>
-     * This method allows sending a message of type {@code MSG} to the state manager. The state
-     * manager will process the message and update its internal state accordingly. The method
-     * returns an {@code EventStage<Void>} that can be used to track the completion of the message
+     * This method allows you to send an event of type {@code EVENT} to the state manager. The event
+     * will be processed according to the current state and any defined state transitions. The method
+     * returns an {@code EventStage<Void>} which can be used to track the completion of the event
      * processing.
      *
-     * @param msg the message to be sent to the state manager
-     * @return an {@code EventStage<Void>} representing the asynchronous message processing
-     * operation
+     * @param event the event to be sent to the state manager
+     * @return an {@code EventStage<Void>} representing the asynchronous operation
      */
-    EventStage<Void> send(MSG msg);
+    EventStage<Void> send(EVENT event);
 
     /**
-     * Sends a message to the state manager and queries the state after the message is processed.
+     * Sends an event to the state manager and queries the resulting state.
      * <p>
-     * This method sends a message of type {@code MSG} to the state manager, processes it, and then
-     * applies the provided function to the updated state. The result of the function is returned as
-     * an {@code EventStage<T>}, which can be used to track the completion of the operation and
-     * retrieve the result.
+     * This method sends an event of type {@code EVENT} to the state manager for processing. After
+     * the event is processed, the provided function is applied to the resulting state. The method
+     * returns an {@code EventStage<T>} which can be used to track the completion of the event
+     * processing and to retrieve the result of the function.
      *
-     * @param <T>      the type of the result returned by the function
-     * @param msg      the message to be sent to the state manager
-     * @param function the function to apply to the state after the message is processed
+     * @param <T> the type of the result returned by the function
+     * @param event the event to be sent to the state manager
+     * @param function the function to apply to the resulting state
      * @return an {@code EventStage<T>} representing the asynchronous operation and the result of
      * the function
      */
-    <T> EventStage<T> sendAndQuery(MSG msg, Function<STATE, T> function);
+    <T> EventStage<T> sendAndQuery(EVENT event, Function<STATE, T> function);
 
     /**
      * Queries the current state and applies the provided function to it, returning the result.

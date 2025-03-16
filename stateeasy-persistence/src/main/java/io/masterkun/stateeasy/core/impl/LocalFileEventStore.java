@@ -8,6 +8,7 @@ import io.masterkun.stateeasy.indexlogging.IdAndOffset;
 import io.masterkun.stateeasy.indexlogging.LogObserver;
 import io.masterkun.stateeasy.indexlogging.LogSystem;
 import io.masterkun.stateeasy.indexlogging.Serializer;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -24,7 +25,8 @@ public class LocalFileEventStore<EVENT> implements EventStore<EVENT>, Closeable 
 
     private final LogFileEventStoreConfig config;
     private final Serializer<EVENT> serializer;
-    private EventLogger<EVENT> logger;
+    @VisibleForTesting
+    EventLogger<EVENT> logger;
 
     public LocalFileEventStore(LogFileEventStoreConfig config,
                                Serializer<EVENT> serializer) {
@@ -36,8 +38,8 @@ public class LocalFileEventStore<EVENT> implements EventStore<EVENT>, Closeable 
     public void initialize(EventSourceStateDef<?, EVENT> stateDef,
                            EventStageListener<Void> listener) {
         try {
-            LogSystem system =
-                    LocalFileLogSystemProvider.getLogSystem(config.getThreadNumPerDisk());
+            LogSystem system = LocalFileLogSystemProvider
+                    .getLogSystem(config.getThreadNumPerDisk());
             String name = "event-store-" + stateDef.name();
             this.logger = system.get(config.toLogConfig(name), serializer);
             listener.success(null);
@@ -68,7 +70,7 @@ public class LocalFileEventStore<EVENT> implements EventStore<EVENT>, Closeable 
 
     @Override
     public void expire(long expireBeforeEventId, EventStageListener<Boolean> listener) {
-        logger.expire(expireBeforeEventId);
+        logger.expire(expireBeforeEventId, listener);
     }
 
     @Override

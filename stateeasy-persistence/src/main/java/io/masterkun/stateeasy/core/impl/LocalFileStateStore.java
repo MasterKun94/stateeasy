@@ -9,6 +9,8 @@ import io.masterkun.stateeasy.indexlogging.EventLogger;
 import io.masterkun.stateeasy.indexlogging.IdAndOffset;
 import io.masterkun.stateeasy.indexlogging.LogSystem;
 import io.masterkun.stateeasy.indexlogging.Serializer;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -27,7 +29,8 @@ public class LocalFileStateStore<STATE> implements StateStore<STATE>, Closeable 
 
     private final LogFileEventStoreConfig config;
     private final Serializer<Snapshot<STATE>> serializer;
-    private EventLogger<Snapshot<STATE>> logger;
+    @VisibleForTesting
+    EventLogger<Snapshot<STATE>> logger;
 
     public LocalFileStateStore(LogFileEventStoreConfig config,
                                Serializer<STATE> serializer) {
@@ -54,7 +57,7 @@ public class LocalFileStateStore<STATE> implements StateStore<STATE>, Closeable 
         logger.write(snapshot, true, new EventStageListener<>() {
             @Override
             public void success(IdAndOffset value) {
-                listener.success(null);
+                listener.success(value.id());
             }
 
             @Override
@@ -65,8 +68,12 @@ public class LocalFileStateStore<STATE> implements StateStore<STATE>, Closeable 
     }
 
     @Override
-    public void read(EventStageListener<SnapshotAndId<STATE>> listener) {
+    public void read(EventStageListener<@Nullable SnapshotAndId<STATE>> listener) {
         long endId = logger.endId();
+        if (endId == -1) {
+            listener.success(null);
+            return;
+        }
         logger.readOne(endId, new EventStageListener<>() {
             @Override
             public void success(Snapshot<STATE> value) {

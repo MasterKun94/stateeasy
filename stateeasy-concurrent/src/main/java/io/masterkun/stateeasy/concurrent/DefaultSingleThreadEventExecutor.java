@@ -107,6 +107,7 @@ public class DefaultSingleThreadEventExecutor extends AbstractExecutorService
         return new ScheduleDelay(this, command, initialDelay, delay, unit);
     }
 
+    @Override
     public CompletableFuture<Void> shutdownAsync() {
         if (terminatedFuture == null) {
             synchronized (this) {

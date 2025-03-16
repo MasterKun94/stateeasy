@@ -23,11 +23,12 @@ import java.util.function.Function;
  * @param <STATE> the type of the state managed by this state manager
  * @param <EVENT> the type of the events that can modify the state
  */
-public final class SnapshotStateManager<STATE, EVENT> implements StateManager<STATE, EVENT> {
+final class SnapshotStateManager<STATE, EVENT> implements StateManager<STATE, EVENT> {
     private static final Logger LOG = LoggerFactory.getLogger(SnapshotStateManager.class);
 
     private final StateDef<STATE, EVENT> stateDef;
     private final EventExecutor executor;
+    private final String name;
     private STATE state;
     private long snapshotInterval;
     private long snapshotMsgMax;
@@ -43,6 +44,12 @@ public final class SnapshotStateManager<STATE, EVENT> implements StateManager<ST
                          StateDef<STATE, EVENT> stateDef) {
         this.executor = singleThreadExecutor;
         this.stateDef = stateDef;
+        this.name = stateDef.name();
+    }
+
+    @Override
+    public String name() {
+        return name;
     }
 
     @Override
@@ -203,6 +210,7 @@ public final class SnapshotStateManager<STATE, EVENT> implements StateManager<ST
                     } catch (IOException e) {
                         // ignore
                     }
+                    StateManagerPool.INSTANCE.remove(this);
                     return null;
                 });
     }

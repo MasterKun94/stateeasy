@@ -41,21 +41,24 @@ public class Utils {
         return buffer;
     }
 
+    public static String namePrefix(LogConfig config) {
+        return "segment-" + config.name() + "-";
+    }
 
     public static File metaFile(LogConfig config, long initId) {
-        return new File(config.logDir(), "segment-" + config.name() + "-" + initId + ".meta");
+        return new File(config.logDir(), namePrefix(config) + initId + ".meta");
     }
 
     public static File indexFile(LogConfig config, long initId) {
-        return new File(config.logDir(), "segment-" + config.name() + "-" + initId + ".idx");
+        return new File(config.logDir(), namePrefix(config) + initId + ".idx");
     }
 
     public static File logFile(LogConfig config, long initId) {
-        return new File(config.logDir(), "segment-" + config.name() + "-" + initId + ".data");
+        return new File(config.logDir(), namePrefix(config) + initId + ".data");
     }
 
     public static long extractInitId(LogConfig config, File file) {
-        String prefix = "segment-" + config.name() + "-";
+        String prefix = namePrefix(config);
         String suffix = ".meta";
         String fileName = file.getName();
         if (!fileName.startsWith(prefix)) {

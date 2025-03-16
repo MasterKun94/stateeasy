@@ -223,7 +223,7 @@ public final class LogFileEventStoreConfig {
     public LogConfig toLogConfig(String name) {
         return new LogConfig(
                 name,
-                new File(logDir),
+                new File(logDir).getAbsoluteFile(),
                 segmentNum,
                 toMemorySizeInt(segmentSize),
                 toMemorySizeInt(indexChunkSize),

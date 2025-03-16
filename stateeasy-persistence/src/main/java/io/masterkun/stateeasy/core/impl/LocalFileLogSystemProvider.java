@@ -1,6 +1,7 @@
 package io.masterkun.stateeasy.core.impl;
 
 import io.masterkun.stateeasy.indexlogging.LogSystem;
+import org.jetbrains.annotations.VisibleForTesting;
 
 public class LocalFileLogSystemProvider {
     private static volatile LogSystem logSystem;
@@ -14,5 +15,10 @@ public class LocalFileLogSystemProvider {
             }
         }
         return logSystem;
+    }
+
+    @VisibleForTesting
+    public static void setLogSystem(LogSystem logSystem) {
+        LocalFileLogSystemProvider.logSystem = logSystem;
     }
 }

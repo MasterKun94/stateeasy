@@ -126,4 +126,6 @@ public sealed interface EventExecutor extends ScheduledExecutorService
     default <T> EventPromise<T> newFuturePromise() {
         return EventFuture.newPromise(this);
     }
+
+    CompletableFuture<Void> shutdownAsync();
 }

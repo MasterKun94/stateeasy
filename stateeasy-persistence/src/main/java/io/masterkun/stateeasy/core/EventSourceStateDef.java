@@ -1,5 +1,7 @@
 package io.masterkun.stateeasy.core;
 
+import io.masterkun.stateeasy.concurrent.EventExecutor;
+
 import java.util.concurrent.ScheduledExecutorService;
 
 /**
@@ -12,13 +14,12 @@ import java.util.concurrent.ScheduledExecutorService;
  */
 public interface EventSourceStateDef<STATE, EVENT> extends StateDef<STATE, EVENT> {
     /**
-     * Returns an {@code EventStore} instance for managing and storing events. The provided
-     * {@code ScheduledExecutorService} is used to handle the execution of asynchronous tasks
-     * related to event management, such as appending, expiring, and recovering events.
+     * Provides an {@link EventStore} for managing events. The event store is responsible for storing,
+     * appending, expiring, and recovering events, as well as flushing the store to ensure all pending
+     * events are processed.
      *
-     * @param executor the {@code ScheduledExecutorService} that will be used to execute
-     *                 asynchronous tasks
-     * @return an {@code EventStore<EVENT>} instance for managing and storing events
+     * @param executor the {@link EventExecutor} used for executing event-related tasks
+     * @return an instance of {@link EventStore} configured with the provided {@code EventExecutor}
      */
-    EventStore<EVENT> eventStore(ScheduledExecutorService executor);
+    EventStore<EVENT> eventStore(EventExecutor executor);
 }

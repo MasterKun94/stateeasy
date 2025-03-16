@@ -3,6 +3,7 @@ package io.masterkun.stateeasy.core;
 import io.masterkun.stateeasy.concurrent.EventPromise;
 import io.masterkun.stateeasy.concurrent.EventStage;
 import io.masterkun.stateeasy.concurrent.EventStageListener;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -42,13 +43,13 @@ public class StateStoreAdaptor<STATE> implements StateStore<STATE>, Closeable {
         delegate.write(snapshot, listener);
     }
 
-    public EventStage<SnapshotAndId<STATE>> read(EventPromise<SnapshotAndId<STATE>> promise) {
+    public EventStage<SnapshotAndId<STATE>> read(EventPromise<@Nullable SnapshotAndId<STATE>> promise) {
         read((EventStageListener<SnapshotAndId<STATE>>) promise);
         return promise;
     }
 
     @Override
-    public void read(EventStageListener<SnapshotAndId<STATE>> listener) {
+    public void read(EventStageListener<@Nullable SnapshotAndId<STATE>> listener) {
         delegate.read(listener);
     }
 

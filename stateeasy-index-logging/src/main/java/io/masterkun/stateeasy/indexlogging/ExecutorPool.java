@@ -88,13 +88,13 @@ public class ExecutorPool implements HasMetrics {
         if (shutdownFuture != null) {
             throw new RuntimeException("already shutdown");
         }
-        File parent = dir;
+        File parent = dir.getAbsoluteFile();
         while (!parent.exists()) {
             parent = parent.getParentFile();
         }
         FileStore fileStore;
         try {
-            fileStore = Files.getFileStore(dir.toPath());
+            fileStore = Files.getFileStore(parent.toPath());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

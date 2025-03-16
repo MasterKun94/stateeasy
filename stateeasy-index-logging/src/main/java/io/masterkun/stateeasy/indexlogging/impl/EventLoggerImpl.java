@@ -83,7 +83,11 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics, Clo
         this.readerExecutor = readerExecutor == null ? executor : readerExecutor;
         List<Long> list;
         if (logDir.exists()) {
-            File[] metaFiles = logDir.listFiles(file -> file.getName().endsWith(".meta"));
+            File[] metaFiles = logDir.listFiles(file -> {
+                String fileName = file.getName();
+                return fileName.endsWith(".meta") &&
+                        fileName.startsWith(Utils.namePrefix(config));
+            });
             list = Arrays.stream(Objects.requireNonNull(metaFiles))
                     .map(f -> Utils.extractInitId(config, f))
                     .sorted()
