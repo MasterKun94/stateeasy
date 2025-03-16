@@ -17,6 +17,7 @@ import java.util.concurrent.CompletableFuture;
  * @param <T> the type of the objects to be logged
  */
 public interface EventLogger<T> {
+    String name();
     /**
      * Returns the ID of the first log entry in the log.
      *

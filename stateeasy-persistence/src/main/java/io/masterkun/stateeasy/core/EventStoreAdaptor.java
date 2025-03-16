@@ -4,6 +4,9 @@ import io.masterkun.stateeasy.concurrent.EventPromise;
 import io.masterkun.stateeasy.concurrent.EventStage;
 import io.masterkun.stateeasy.concurrent.EventStageListener;
 
+import java.io.Closeable;
+import java.io.IOException;
+
 /**
  * An adaptor for the {@link EventStore} interface, providing a way to wrap another implementation
  * of the {@code EventStore} and potentially add additional behavior or modifications to its
@@ -12,7 +15,7 @@ import io.masterkun.stateeasy.concurrent.EventStageListener;
  *
  * @param <EVENT> the type of events managed by this store
  */
-public class EventStoreAdaptor<EVENT> implements EventStore<EVENT> {
+public class EventStoreAdaptor<EVENT> implements EventStore<EVENT>, Closeable {
     private final EventStore<EVENT> delegate;
 
     public EventStoreAdaptor(EventStore<EVENT> delegate) {
@@ -67,4 +70,10 @@ public class EventStoreAdaptor<EVENT> implements EventStore<EVENT> {
         delegate.recover(recoverAtEventId, observer);
     }
 
+    @Override
+    public void close() throws IOException {
+        if (delegate instanceof Closeable closeable) {
+            closeable.close();
+        }
+    }
 }

@@ -86,8 +86,10 @@ public class LocalFileStateStore<STATE> implements StateStore<STATE>, Closeable 
     }
 
     @Override
-    public void close() {
-        // TODO
+    public void close() throws IOException {
+        LocalFileLogSystemProvider.getLogSystem(1)
+                .closeLogger(logger);
+        logger = null;
     }
 
     private static class SnapshotSerializer<STATE> implements Serializer<Snapshot<STATE>> {

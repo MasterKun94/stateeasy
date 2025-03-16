@@ -51,9 +51,7 @@ public final class SnapshotStateManager<STATE, EVENT> implements StateManager<ST
         snapshotMsgMax = stateDef.snapshotConfig().getSnapshotMsgMax();
         this.stateStore = new StateStoreAdaptor<>(stateDef.stateStore(executor));
         EventStage<Void> initFuture;
-        if (stateDef instanceof EventSourceStateDef) {
-            @SuppressWarnings("unchecked")
-            var eventSourceStateDef = (EventSourceStateDef<?, EVENT>) stateDef;
+        if (stateDef instanceof EventSourceStateDef<?, EVENT> eventSourceStateDef) {
             this.eventStore = new EventStoreAdaptor<>(eventSourceStateDef.eventStore(executor));
             initFuture = this.eventStore.initialize(eventSourceStateDef, executor.newPromise());
         } else {
@@ -98,7 +96,7 @@ public final class SnapshotStateManager<STATE, EVENT> implements StateManager<ST
                 }, executor);
     }
 
-    protected void internalUpdate(EVENT event) {
+    private void internalUpdate(EVENT event) {
         state = stateDef.update(state, event);
     }
 
@@ -197,10 +195,15 @@ public final class SnapshotStateManager<STATE, EVENT> implements StateManager<ST
                 .map(v -> {
                     try {
                         stateStore.close();
-                        return null;
                     } catch (IOException e) {
-                        throw new RuntimeException(e);
+                        // ignore
                     }
+                    try {
+                        eventStore.close();
+                    } catch (IOException e) {
+                        // ignore
+                    }
+                    return null;
                 });
     }
 }

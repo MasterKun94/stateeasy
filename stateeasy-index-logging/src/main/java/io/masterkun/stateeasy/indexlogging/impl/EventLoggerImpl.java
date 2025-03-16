@@ -143,6 +143,10 @@ public final class EventLoggerImpl<T> implements EventLogger<T>, HasMetrics, Clo
         }
     }
 
+    public String name() {
+        return name;
+    }
+
     @Override
     public long startId() {
         return segments.getLast().startId();

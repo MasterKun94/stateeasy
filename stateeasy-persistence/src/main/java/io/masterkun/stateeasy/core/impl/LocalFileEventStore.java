@@ -9,6 +9,9 @@ import io.masterkun.stateeasy.indexlogging.LogObserver;
 import io.masterkun.stateeasy.indexlogging.LogSystem;
 import io.masterkun.stateeasy.indexlogging.Serializer;
 
+import java.io.Closeable;
+import java.io.IOException;
+
 /**
  * Implementation of the {@link EventStore} interface that stores events in a local file system.
  * This class uses a log-based approach to manage and persist events, ensuring durability and
@@ -17,7 +20,7 @@ import io.masterkun.stateeasy.indexlogging.Serializer;
  *
  * @param <EVENT> the type of events that this store will manage
  */
-public class LocalFileEventStore<EVENT> implements EventStore<EVENT> {
+public class LocalFileEventStore<EVENT> implements EventStore<EVENT>, Closeable {
 
     private final LogFileEventStoreConfig config;
     private final Serializer<EVENT> serializer;
@@ -90,5 +93,12 @@ public class LocalFileEventStore<EVENT> implements EventStore<EVENT> {
                 observer.onError(e);
             }
         });
+    }
+
+    @Override
+    public void close() throws IOException {
+        LocalFileLogSystemProvider.getLogSystem(1)
+                .closeLogger(logger);
+        logger = null;
     }
 }

@@ -169,6 +169,33 @@ public final class LogSystem implements HasMetrics {
         }
     }
 
+    /**
+     * Closes the specified logger and removes it from the cache.
+     *
+     * @param logger the logger to be closed
+     * @return true if the logger was successfully closed and removed, false otherwise
+     * @throws IOException if an I/O error occurs while closing the logger
+     */
+    public boolean closeLogger(EventLogger<?> logger) throws IOException {
+        LoggerHolder holder = cache.get(logger.name());
+        if (holder.logger == logger) {
+            cache.remove(logger.name(), holder);
+            holder.close();
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Initiates the shutdown process for the logging system.
+     * <p>
+     * This method sets the shutdown flag to true, closes all loggers in the cache, clears the cache,
+     * and shuts down the executor pool. Any exceptions that occur during the closure of individual
+     * loggers are logged as errors.
+     *
+     * @return a CompletableFuture that will be completed when the shutdown process is complete
+     */
     public CompletableFuture<Void> shutdown() {
         shutdown = true;
         for (LoggerHolder value : cache.values()) {
