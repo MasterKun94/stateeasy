@@ -1,4 +1,5 @@
 # StateEasy 项目简介
+[Switch Language: English](README-en.md)
 
 StateEasy 是一个专注于响应式编程和数据状态管理持久化的工具库集合。它包括了三个主要模块：
 `StateEasy Persistent`、`StateEasy Concurrent` 和 `StateEasy Index Logging`
