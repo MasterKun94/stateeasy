@@ -1,26 +1,27 @@
 package io.masterkun.stateeasy.core.impl;
 
 import io.masterkun.stateeasy.concurrent.EventStageListener;
-import io.masterkun.stateeasy.concurrent.EventStageListenerAdaptor;
 import io.masterkun.stateeasy.core.EventSourceStateDef;
-import io.masterkun.stateeasy.core.EventStore;
 import io.masterkun.stateeasy.core.EventStore.EventHolder;
 import io.masterkun.stateeasy.indexlogging.EventLogger;
 import io.masterkun.stateeasy.indexlogging.IdAndOffset;
-import io.masterkun.stateeasy.indexlogging.LogConfig;
-import io.masterkun.stateeasy.indexlogging.Serializer;
-import org.junit.Test;
-import org.mockito.Mockito;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 import io.masterkun.stateeasy.indexlogging.LogSystem;
+import io.masterkun.stateeasy.indexlogging.Serializer;
 import org.junit.Before;
+import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import java.io.IOException;
-import java.util.concurrent.CompletableFuture;
 
-import static org.junit.Assert.*;
+import java.io.IOException;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class LocalFileEventStoreTest {
 
@@ -126,7 +127,7 @@ public class LocalFileEventStoreTest {
         eventStore.logger = logger;
         eventStore.expire(expireBeforeEventId, listener);
 
-        verify(logger).expire(expireBeforeEventId);
+        verify(logger).expire(expireBeforeEventId, listener);
     }
 
     @Test

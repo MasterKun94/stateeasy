@@ -12,9 +12,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileStore;
 import java.nio.file.FileSystem;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.spi.FileSystemProvider;
 
 import static org.junit.Assert.assertEquals;
@@ -34,13 +32,6 @@ public class ExecutorPoolTest {
     private File mockFile;
     private FileStore mockFileStore;
 
-    public static void main(String[] args) throws IOException {
-        FileStore fileStore = Files.getFileStore(Paths.get("/tmp"));
-        System.out.println(fileStore.name());
-        System.out.println(fileStore.getBlockSize());
-        System.out.println(fileStore.type());
-    }
-
     @Before
     public void setUp() throws IOException {
         mockExecutorFactory = Mockito.mock(EventExecutorFactory.class);
@@ -53,6 +44,8 @@ public class ExecutorPoolTest {
 
         when(mockFile.exists()).thenReturn(true);
         when(mockFile.getParentFile()).thenReturn(mockFile);
+        when(mockFile.getAbsoluteFile()).thenReturn(mockFile);
+        when(mockFile.isAbsolute()).thenReturn(true);
         when(mockFile.toPath()).thenReturn(mockPath);
         when(mockPath.getFileSystem()).thenReturn(mockFs);
         when(mockFs.provider()).thenReturn(mockFsProvider);

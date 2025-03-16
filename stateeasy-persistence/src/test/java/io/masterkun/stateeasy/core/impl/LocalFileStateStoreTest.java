@@ -13,13 +13,17 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+
 import java.io.IOException;
 import java.util.Map;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class LocalFileStateStoreTest {
 
@@ -71,11 +75,12 @@ public class LocalFileStateStoreTest {
 
         stateStore.write(snapshot, writeListener);
 
-        ArgumentCaptor<EventStageListener<IdAndOffset>> captor = ArgumentCaptor.forClass(EventStageListener.class);
+        ArgumentCaptor<EventStageListener<IdAndOffset>> captor =
+                ArgumentCaptor.forClass(EventStageListener.class);
         verify(logger).write(eq(snapshot), eq(true), captor.capture());
-        captor.getValue().success(null);
+        captor.getValue().success(new IdAndOffset(1, 2));
 
-        verify(writeListener).success(null);
+        verify(writeListener).success(1L);
     }
 
     @Test
@@ -85,7 +90,8 @@ public class LocalFileStateStoreTest {
 
         stateStore.write(snapshot, writeListener);
 
-        ArgumentCaptor<EventStageListener<IdAndOffset>> captor = ArgumentCaptor.forClass(EventStageListener.class);
+        ArgumentCaptor<EventStageListener<IdAndOffset>> captor =
+                ArgumentCaptor.forClass(EventStageListener.class);
         verify(logger).write(eq(snapshot), eq(true), captor.capture());
         captor.getValue().failure(new RuntimeException("Write failed"));
 
@@ -99,7 +105,8 @@ public class LocalFileStateStoreTest {
 
         stateStore.read(readListener);
 
-        ArgumentCaptor<EventStageListener<Snapshot<String>>> captor = ArgumentCaptor.forClass(EventStageListener.class);
+        ArgumentCaptor<EventStageListener<Snapshot<String>>> captor =
+                ArgumentCaptor.forClass(EventStageListener.class);
         verify(logger).readOne(eq(1L), captor.capture());
         captor.getValue().success(new Snapshot<>("state", 1L, Map.of()));
 
@@ -113,7 +120,8 @@ public class LocalFileStateStoreTest {
 
         stateStore.read(readListener);
 
-        ArgumentCaptor<EventStageListener<Snapshot<String>>> captor = ArgumentCaptor.forClass(EventStageListener.class);
+        ArgumentCaptor<EventStageListener<Snapshot<String>>> captor =
+                ArgumentCaptor.forClass(EventStageListener.class);
         verify(logger).readOne(eq(1L), captor.capture());
         captor.getValue().failure(new RuntimeException("Read failed"));
 
