@@ -1,7 +1,7 @@
 package io.masterkun.stateeasy.indexlogging.impl;
 
 import io.masterkun.stateeasy.concurrent.EventExecutor;
-import io.masterkun.stateeasy.indexlogging.HasMetrics;
+import io.masterkun.stateeasy.concurrent.HasMetrics;
 import io.masterkun.stateeasy.indexlogging.Serializer;
 import io.masterkun.stateeasy.indexlogging.exception.LogFullException;
 import io.micrometer.core.instrument.Counter;

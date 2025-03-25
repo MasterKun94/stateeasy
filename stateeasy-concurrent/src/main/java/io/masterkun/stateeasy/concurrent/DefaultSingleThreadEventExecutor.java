@@ -80,6 +80,11 @@ public class DefaultSingleThreadEventExecutor extends AbstractExecutorService
     }
 
     @Override
+    public String threadName() {
+        return thread.getName();
+    }
+
+    @Override
     public @NotNull ScheduledFuture<?> schedule(@NotNull Runnable command, long delay,
                                                 @NotNull TimeUnit unit) {
         FutureTask<?> task = new FutureTask<>(command, null);
@@ -464,7 +469,7 @@ public class DefaultSingleThreadEventExecutor extends AbstractExecutorService
                     counter++;
                 }
             }
-            LOG.info("Task shutting down");
+            LOG.debug("Task shutting down");
             if (!timeoutTasks.isEmpty()) {
                 timeoutTasks.poll().cancel(false);
             }

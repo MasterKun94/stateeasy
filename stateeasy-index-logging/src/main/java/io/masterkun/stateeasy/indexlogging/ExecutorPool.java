@@ -2,6 +2,8 @@ package io.masterkun.stateeasy.indexlogging;
 
 import io.masterkun.stateeasy.concurrent.EventExecutor;
 import io.masterkun.stateeasy.concurrent.EventExecutorThreadFactory;
+import io.masterkun.stateeasy.concurrent.HasMetrics;
+import io.masterkun.stateeasy.concurrent.MeterEventExecutor;
 import io.masterkun.stateeasy.indexlogging.executor.EventExecutorFactory;
 import io.micrometer.core.instrument.ImmutableTag;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -121,10 +123,7 @@ public class ExecutorPool implements HasMetrics {
             }
             tagList.add(new ImmutableTag("file_store", fileStore));
             tagList.add(new ImmutableTag("executor_id", Integer.toString(id)));
-            // TODO add metrics
-//            return ExecutorServiceMetrics.monitor(registry, (ScheduledExecutorService) executor,
-//                    "log_system_executor", metricPrefix, tagList);
-            return executor;
+            return new MeterEventExecutor(executor, registry, metricPrefix, tagList);
         };
         for (ExecutorHolder holder : executors.values()) {
             holder.registerMetrics();

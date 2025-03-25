@@ -10,4 +10,5 @@ package io.masterkun.stateeasy.concurrent;
  * that tasks are processed one at a time in the order they are submitted.
  */
 public non-sealed interface SingleThreadEventExecutor extends EventExecutor {
+    String threadName();
 }

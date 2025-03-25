@@ -2,8 +2,8 @@ package io.masterkun.stateeasy.indexlogging.impl;
 
 import io.masterkun.stateeasy.concurrent.EventExecutor;
 import io.masterkun.stateeasy.concurrent.EventStageListener;
+import io.masterkun.stateeasy.concurrent.HasMetrics;
 import io.masterkun.stateeasy.indexlogging.EventLogger;
-import io.masterkun.stateeasy.indexlogging.HasMetrics;
 import io.masterkun.stateeasy.indexlogging.IdAndOffset;
 import io.masterkun.stateeasy.indexlogging.LogConfig;
 import io.masterkun.stateeasy.indexlogging.LogObserver;

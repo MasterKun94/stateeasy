@@ -5,7 +5,7 @@ package io.masterkun.stateeasy.concurrent;
  * of the {@code EventExecutor} it is associated with, which allows for more sophisticated task
  * execution and management.
  */
-public class EventExecutorThread extends Thread {
+public class EventExecutorThread extends Thread implements EventExecutor.ThreadWorker {
     private final EventExecutor executor;
 
     public EventExecutorThread(EventExecutor executor) {
@@ -27,6 +27,7 @@ public class EventExecutorThread extends Thread {
      *
      * @return the owning {@code EventExecutor} instance
      */
+    @Override
     public EventExecutor getOwnerExecutor() {
         return executor;
     }

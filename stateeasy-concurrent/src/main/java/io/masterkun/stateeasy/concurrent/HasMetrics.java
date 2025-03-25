@@ -1,4 +1,4 @@
-package io.masterkun.stateeasy.indexlogging;
+package io.masterkun.stateeasy.concurrent;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import org.jetbrains.annotations.Nullable;

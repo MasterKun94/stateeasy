@@ -20,17 +20,16 @@ public sealed interface EventExecutor extends ScheduledExecutorService
         permits SingleThreadEventExecutor {
 
     /**
-     * Returns the {@code EventExecutor} that is currently executing the calling thread, if the
-     * current thread is an instance of {@code EventExecutorThread}. If the current thread is not an
-     * {@code EventExecutorThread}, this method returns {@code null}.
+     * Retrieves the {@code EventExecutor} associated with the current thread, if it is a
+     * {@code ThreadWorker}. If the current thread is not a {@code ThreadWorker}, returns null.
      *
-     * @return the current {@code EventExecutor} if the current thread is an
-     * {@code EventExecutorThread}, otherwise {@code null}
+     * @return the {@code EventExecutor} of the current thread if it is a {@code ThreadWorker}, or
+     * null if the current thread is not a {@code ThreadWorker}
      */
     @Nullable
     static EventExecutor currentExecutor() {
-        if (Thread.currentThread() instanceof EventExecutorThread et) {
-            return et.getOwnerExecutor();
+        if (Thread.currentThread() instanceof ThreadWorker worker) {
+            return worker.getOwnerExecutor();
         } else {
             return null;
         }
@@ -128,4 +127,16 @@ public sealed interface EventExecutor extends ScheduledExecutorService
     }
 
     CompletableFuture<Void> shutdownAsync();
+
+    /**
+     * A marker interface for threads that are associated with an {@link EventExecutor}.
+     * Implementations of this interface are designed to be aware of the {@code EventExecutor} they
+     * are working with, allowing for more advanced task execution and management.
+     *
+     * <p>Implementing this interface in a thread class enables it to be recognized by the
+     * {@code EventExecutor} and to participate in its lifecycle and task management.
+     */
+    interface ThreadWorker {
+        EventExecutor getOwnerExecutor();
+    }
 }
