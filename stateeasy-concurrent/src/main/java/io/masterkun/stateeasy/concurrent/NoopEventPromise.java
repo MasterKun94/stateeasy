@@ -77,6 +77,11 @@ public class NoopEventPromise<T> implements EventPromise<T> {
     }
 
     @Override
+    public <P> EventStage<P> flatTransform(Function<Try<T>, EventStage<P>> transformer, EventExecutor executor) {
+        throw new UnsupportedOperationException("NoopEventPromise is not support");
+    }
+
+    @Override
     public boolean cancel() {
         return false;
     }

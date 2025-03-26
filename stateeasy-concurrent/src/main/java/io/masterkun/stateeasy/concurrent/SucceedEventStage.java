@@ -80,7 +80,7 @@ public sealed class SucceedEventStage<T> implements EventStage<T> permits Succee
     public <P> EventStage<P> flatmap(Function<T, EventStage<P>> func, EventExecutor executor) {
         if (executor.inExecutor()) {
             try {
-                return func.apply(value).toFuture();
+                return func.apply(value);
             } catch (Throwable e) {
                 return new FailedEventFuture<>(e, executor);
             }
@@ -115,6 +115,28 @@ public sealed class SucceedEventStage<T> implements EventStage<T> permits Succee
                 switch (transformer.apply(Try.success(value))) {
                     case Success<P>(P v) -> future.success(v);
                     case Failure<?>(Throwable cause) -> future.failure(cause);
+                }
+            });
+            return future;
+        }
+    }
+
+    @Override
+    public <P> EventStage<P> flatTransform(Function<Try<T>, EventStage<P>> transformer,
+                                           EventExecutor executor) {
+        if (executor.inExecutor()) {
+            try {
+                return transformer.apply(Try.success(value));
+            } catch (Throwable e) {
+                return new FailedEventStage<>(e, executor);
+            }
+        } else {
+            EventPromise<P> future = newPromise(executor);
+            executor.execute(() -> {
+                try {
+                    transformer.apply(Try.success(value)).addListener(future);
+                } catch (Throwable e) {
+                    future.failure(e);
                 }
             });
             return future;

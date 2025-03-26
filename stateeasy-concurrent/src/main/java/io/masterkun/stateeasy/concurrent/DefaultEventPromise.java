@@ -290,6 +290,26 @@ public class DefaultEventPromise<T> implements EventPromise<T> {
     }
 
     @Override
+    public <P> EventStage<P> flatTransform(Function<Try<T>, EventStage<P>> transformer, EventExecutor executor) {
+        if (isDone()) {
+            return toCompletedStage(executor).flatTransform(transformer);
+        }
+        EventPromise<P> promise = newPromise(executor);
+        addListener(new EventStageListener<>() {
+            @Override
+            public void success(T value) {
+                transformer.apply(Try.success(value)).addListener(promise);
+            }
+
+            @Override
+            public void failure(Throwable cause) {
+                transformer.apply(Try.failure(cause)).addListener(promise);
+            }
+        });
+        return promise;
+    }
+
+    @Override
     public EventFuture<T> toFuture() {
         return EventPromise.super.toFuture();
     }

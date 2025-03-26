@@ -59,6 +59,11 @@ public final class SucceedEventFuture<T> extends SucceedEventStage<T> implements
     }
 
     @Override
+    public <P> EventFuture<P> flatTransform(Function<Try<T>, EventStage<P>> transformer, EventExecutor executor) {
+        return super.flatTransform(transformer, executor).toFuture();
+    }
+
+    @Override
     public EventFuture<T> addListeners(Collection<EventStageListener<T>> eventStageListeners) {
         return super.addListeners(eventStageListeners).toFuture();
     }

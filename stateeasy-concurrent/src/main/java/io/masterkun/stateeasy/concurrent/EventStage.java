@@ -243,6 +243,32 @@ public sealed interface EventStage<T> permits EventPromise, EventFuture, Succeed
     <P> EventStage<P> transform(Function<Try<T>, Try<P>> transformer, EventExecutor executor);
 
     /**
+     * Applies a transformation to each element of the current EventStage, where the transformation
+     * function returns a new EventStage. The resulting stages are then flattened into a single
+     * EventStage.
+     *
+     * @param transformer the function that takes a Try of the current EventStage's element type and
+     *                    returns a new EventStage of a potentially different type
+     * @param <P> the type of elements in the resulting EventStage
+     * @return a new EventStage containing the elements from the transformed and flattened stages
+     */
+    default <P> EventStage<P> flatTransform(Function<Try<T>, EventStage<P>> transformer) {
+        return flatTransform(transformer, executor());
+    }
+
+    /**
+     * Transforms the elements emitted by the current EventStage using a provided function, and flattens the results into a single stream.
+     * The transformation is applied to each element wrapped in a Try monad, allowing for error handling within the transformation process.
+     * The resulting EventStage will emit items from the transformed streams, potentially on a different executor if specified.
+     *
+     * @param transformer the function that transforms each element (wrapped in a Try) into an EventStage of new elements
+     * @param executor the EventExecutor on which the transformed EventStages should be executed; if null, the original executor is used
+     * @param <P> the type of the elements in the resulting EventStage
+     * @return a new EventStage that emits the flattened results of applying the transformer to each element of the source stage
+     */
+    <P> EventStage<P> flatTransform(Function<Try<T>, EventStage<P>> transformer, EventExecutor executor);
+
+    /**
      * Adds a single listener to this {@code EventStage}.
      *
      * @param listener the listener to be added to this {@code EventStage}

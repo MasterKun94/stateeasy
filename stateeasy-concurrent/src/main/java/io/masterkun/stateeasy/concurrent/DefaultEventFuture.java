@@ -64,33 +64,43 @@ class DefaultEventFuture<T> extends DefaultEventPromise<T> implements EventFutur
 
     @Override
     public <P> EventFuture<P> map(Function<T, P> func) {
-        return (EventFuture<P>) super.map(func);
+        return super.map(func).toFuture();
     }
 
     @Override
     public <P> EventFuture<P> map(Function<T, P> func, EventExecutor executor) {
-        return (EventFuture<P>) super.map(func, executor);
+        return super.map(func, executor).toFuture();
     }
 
     @Override
     public <P> EventFuture<P> flatmap(Function<T, EventStage<P>> func) {
-        return (EventFuture<P>) super.flatmap(func);
+        return super.flatmap(func).toFuture();
     }
 
     @Override
     public <P> EventFuture<P> flatmap(Function<T, EventStage<P>> func, EventExecutor executor) {
-        return (EventFuture<P>) super.flatmap(func, executor);
+        return super.flatmap(func, executor).toFuture();
     }
 
     @Override
     public <P> EventFuture<P> transform(Function<Try<T>, Try<P>> transformer) {
-        return (EventFuture<P>) super.transform(transformer);
+        return super.transform(transformer).toFuture();
     }
 
     @Override
     public <P> EventFuture<P> transform(Function<Try<T>, Try<P>> transformer,
                                         EventExecutor executor) {
-        return (EventFuture<P>) super.transform(transformer, executor);
+        return super.transform(transformer, executor).toFuture();
+    }
+
+    @Override
+    public <P> EventFuture<P> flatTransform(Function<Try<T>, EventStage<P>> transformer, EventExecutor executor) {
+        return super.flatTransform(transformer, executor).toFuture();
+    }
+
+    @Override
+    public <P> EventFuture<P> flatTransform(Function<Try<T>, EventStage<P>> transformer) {
+        return super.flatTransform(transformer).toFuture();
     }
 
     @Override

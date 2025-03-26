@@ -101,6 +101,14 @@ public non-sealed interface EventFuture<T> extends EventStage<T>, Future<T> {
     <P> EventFuture<P> transform(Function<Try<T>, Try<P>> transformer, EventExecutor executor);
 
     @Override
+    default <P> EventFuture<P> flatTransform(Function<Try<T>, EventStage<P>> transformer) {
+        return flatTransform(transformer, executor());
+    }
+
+    @Override
+    <P> EventFuture<P> flatTransform(Function<Try<T>, EventStage<P>> transformer, EventExecutor executor);
+
+    @Override
     EventFuture<T> addListeners(Collection<EventStageListener<T>> eventStageListeners);
 
     @Override

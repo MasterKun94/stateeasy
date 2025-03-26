@@ -89,6 +89,27 @@ public sealed class FailedEventStage<T> implements EventStage<T> permits FailedE
     }
 
     @Override
+    public <P> EventStage<P> flatTransform(Function<Try<T>, EventStage<P>> transformer, EventExecutor executor) {
+        if (executor.inExecutor()) {
+            try {
+                return transformer.apply(Try.failure(cause));
+            } catch (Throwable e) {
+                return new FailedEventStage<>(e, executor);
+            }
+        } else {
+            EventPromise<P> future = newPromise(executor);
+            executor.execute(() -> {
+                try {
+                    transformer.apply(Try.failure(cause)).addListener(future);
+                } catch (Throwable e) {
+                    future.failure(e);
+                }
+            });
+            return future;
+        }
+    }
+
+    @Override
     public EventStage<T> addListeners(Collection<EventStageListener<T>> eventStageListeners) {
         if (executor.inExecutor()) {
             for (EventStageListener<T> listener : eventStageListeners) {

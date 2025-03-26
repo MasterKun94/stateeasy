@@ -469,6 +469,14 @@ public class DefaultSingleThreadEventExecutor extends AbstractExecutorService
                     counter++;
                 }
             }
+            Runnable remain;
+            while ((remain = taskQueue.poll()) != null) {
+                try {
+                    remain.run();
+                } catch (Throwable e) {
+                    LOG.error("Unexpected task failed", e);
+                }
+            }
             LOG.debug("Task shutting down");
             if (!timeoutTasks.isEmpty()) {
                 timeoutTasks.poll().cancel(false);

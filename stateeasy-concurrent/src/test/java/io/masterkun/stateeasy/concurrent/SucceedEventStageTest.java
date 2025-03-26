@@ -86,8 +86,8 @@ public class SucceedEventStageTest {
 
         EventStage<String> result = stage.flatmap(func, executor);
 
-        assertTrue(result instanceof SucceedEventFuture);
-        assertEquals("Value: 10", ((SucceedEventFuture<String>) result).value);
+        assertTrue(result instanceof SucceedEventStage<String>);
+        assertEquals("Value: 10", ((SucceedEventStage<String>) result).value);
     }
 
     @Test
