@@ -2,6 +2,8 @@ package io.masterkun.stateeasy.concurrent;
 
 import org.jctools.queues.MessagePassingQueue;
 import org.jctools.queues.MpscUnboundedArrayQueue;
+import org.jetbrains.annotations.ApiStatus;
+import org.jetbrains.annotations.ApiStatus.Internal;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -82,6 +84,11 @@ public class DefaultSingleThreadEventExecutor extends AbstractExecutorService
     @Override
     public String threadName() {
         return thread.getName();
+    }
+
+    @Internal
+    public Thread getThread() {
+        return thread;
     }
 
     @Override
