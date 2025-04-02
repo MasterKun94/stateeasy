@@ -27,7 +27,7 @@ maven：
 ```xml
 
 <dependency>
-    <groupId>io.masterkun.commons</groupId>
+    <groupId>io.stateeasy</groupId>
     <artifactId>stateeasy-concurrent</artifactId>
     <version>0.1.0-SNAPSHOT</version>
 </dependency>
@@ -38,11 +38,11 @@ maven：
 下面的例子展示了如何利用`EventStage`来组合多个异步操作，并在最终结果到达时打印输出信息。
 
 ```java
-import io.masterkun.stateeasy.concurrent.DefaultSingleThreadEventExecutor;
-import io.masterkun.stateeasy.concurrent.EventExecutor;
-import io.masterkun.stateeasy.concurrent.EventStage;
-import io.masterkun.stateeasy.concurrent.EventStageListener;
-import io.masterkun.stateeasy.concurrent.Try;
+import io.stateeasy.concurrent.DefaultSingleThreadEventExecutor;
+import io.stateeasy.concurrent.EventExecutor;
+import io.stateeasy.concurrent.EventStage;
+import io.stateeasy.concurrent.EventStageListener;
+import io.stateeasy.concurrent.Try;
 
 public class EventStageExample {
     private static final EventExecutor executor1 = new DefaultSingleThreadEventExecutor();

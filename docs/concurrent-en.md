@@ -34,7 +34,7 @@ For Maven, add the following dependency to your `pom.xml`:
 ```xml
 
 <dependency>
-    <groupId>io.masterkun.commons</groupId>
+    <groupId>io.stateeasy</groupId>
     <artifactId>stateeasy-concurrent</artifactId>
     <version>0.1.0-SNAPSHOT</version>
 </dependency>
@@ -46,11 +46,11 @@ The following example demonstrates how to use `EventStage` to chain multiple asy
 and print the final result when it is available.
 
 ```java
-import io.masterkun.stateeasy.concurrent.DefaultSingleThreadEventExecutor;
-import io.masterkun.stateeasy.concurrent.EventExecutor;
-import io.masterkun.stateeasy.concurrent.EventStage;
-import io.masterkun.stateeasy.concurrent.EventStageListener;
-import io.masterkun.stateeasy.concurrent.Try;
+import io.stateeasy.concurrent.DefaultSingleThreadEventExecutor;
+import io.stateeasy.concurrent.EventExecutor;
+import io.stateeasy.concurrent.EventStage;
+import io.stateeasy.concurrent.EventStageListener;
+import io.stateeasy.concurrent.Try;
 
 public class EventStageExample {
     private static final EventExecutor executor1 = new DefaultSingleThreadEventExecutor();

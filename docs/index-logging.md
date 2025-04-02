@@ -14,7 +14,7 @@ maven：
 ```xml
 
 <dependency>
-    <groupId>io.masterkun.commons</groupId>
+    <groupId>io.stateeasy</groupId>
     <artifactId>stateeasy-index-logging</artifactId>
     <version>0.1.0-SNAPSHOT</version>
 </dependency>
@@ -36,7 +36,7 @@ public record MyMessage(int id,
 为了将 `MyMessage` 对象转换为字节流以便存储或传输，我们需要实现一个 `Serializer` 接口。这里提供了一个简单实现：
 
 ```java
-import io.masterkun.commons.indexlogging.Serializer;
+import io.stateeasy.indexlogging.Serializer;
 
 import java.io.IOException;
 
@@ -61,8 +61,8 @@ public class MySerializer implements Serializer<MyMessage> {
 
 ```java
 
-import io.masterkun.commons.indexlogging.LogConfig;
-import io.masterkun.commons.indexlogging.LogSystem;
+import io.stateeasy.indexlogging.LogConfig;
+import io.stateeasy.indexlogging.LogSystem;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -140,7 +140,7 @@ public class Example {
 
 ## 参数配置
 
-日志参数配置都在`io.masterkun.commons.indexlogging.LogConfig`类中:
+日志参数配置都在`io.stateeasy.indexlogging.LogConfig`类中:
 
 | 名称                    | 类型       | 默认值  | 说明                    |
 |-----------------------|----------|------|-----------------------|

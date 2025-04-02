@@ -15,7 +15,7 @@ For Maven, add the following dependency to your `pom.xml`:
 ```xml
 
 <dependency>
-    <groupId>io.masterkun.commons</groupId>
+    <groupId>io.stateeasy</groupId>
     <artifactId>stateeasy-index-logging</artifactId>
     <version>0.1.0-SNAPSHOT</version>
 </dependency>
@@ -39,7 +39,7 @@ To convert `MyMessage` objects into a byte stream for storage or transmission, w
 a `Serializer` interface. Here is a simple implementation:
 
 ```java
-import io.masterkun.commons.indexlogging.Serializer;
+import io.stateeasy.indexlogging.Serializer;
 
 import java.io.IOException;
 
@@ -64,8 +64,8 @@ Next, we set up the `LogSystem` and request an `EventLogger` instance by specify
 configuration and serializer, and then perform message read and write operations.
 
 ```java
-import io.masterkun.commons.indexlogging.LogConfig;
-import io.masterkun.commons.indexlogging.LogSystem;
+import io.stateeasy.indexlogging.LogConfig;
+import io.stateeasy.indexlogging.LogSystem;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -140,7 +140,7 @@ public class Example {
 
 ## Configuration Parameters
 
-All log configuration parameters are in the `io.masterkun.commons.indexlogging.LogConfig` class:
+All log configuration parameters are in the `io.stateeasy.indexlogging.LogConfig` class:
 
 | Name                  | Type     | Default Value | Description                                                     |
 |-----------------------|----------|---------------|-----------------------------------------------------------------|

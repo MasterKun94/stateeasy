@@ -31,7 +31,7 @@ For Maven, add the following dependency to your `pom.xml`:
 ```xml
 
 <dependency>
-    <groupId>io.masterkun.commons</groupId>
+    <groupId>io.stateeasy</groupId>
     <artifactId>stateeasy-persistent</artifactId>
     <version>0.1.0-SNAPSHOT</version>
 </dependency>
